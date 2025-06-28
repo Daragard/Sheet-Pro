@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playlist Details</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- PDF.js library for rendering PDFs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #374151;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .playlist-song-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: background-color 0.2s ease-in-out;
+            cursor: grab; /* Indicate draggable */
+            position: relative; /* Needed for drag-over border positioning */
+        }
+        .playlist-song-item:hover {
+            background-color: #e5e7eb;
+        }
+        .playlist-song-item.dragging {
+            opacity: 0.5;
+        }
+        /* Styles for drag-over indicators */
+        .playlist-song-item.drag-over-top {
+            border-top: 2px solid #6366f1;
+            margin-top: 0; /* Remove top margin when border is present */
+        }
+        .playlist-song-item.drag-over-bottom {
+            border-bottom: 2px solid #6366f1;
+            margin-bottom: 0; /* Remove bottom margin when border is present */
+        }
+        .playlist-song-item .icon {
+            font-size: 1.8rem;
+            margin-right: 0.75rem;
+            color: #ef4444; /* Red for PDF icons */
+        }
+        .playlist-song-item .name {
+            font-weight: 500;
+            font-size: 1rem;
+            color: #374151;
+            flex-grow: 1; /* Allows name to take available space */
+        }
+        .playlist-song-item .controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-left: 1rem;
+        }
+        .playlist-song-item .controls button {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            background-color: #f3f4f6;
+            color: #4b5563;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .playlist-song-item .controls button:hover {
+            background-color: #e5e7eb;
+            color: #1f2937;
+        }
+        /* Style for a custom message box */
+        #messageBox {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+        }
+        #messageBox.active {
+            opacity: 1;
+        }
+        /* Styling for disabled buttons to indicate their state */
+        .button-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none; /* Disable pointer events on disabled buttons */
+        }
+    </style>
+</head>
+<body class="p-6">
+    <div class="max-w-3xl mx-auto w-full">
+        <header class="flex items-center justify-between mb-6">
+            <button id="backButton" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Playlists
+            </button>
+            <h1 id="playlistName" class="text-3xl font-extrabold text-gray-900">Playlist Name</h1>
+            <button id="playPlaylistButton" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+                <i class="fas fa-play mr-2"></i> Play Playlist
+            </button>
+        </header>
+
+        <div id="playlistSongs" class="bg-white rounded-xl shadow-lg p-6">
+            <!-- Playlist songs will be dynamically loaded here -->
+            <p id="emptyPlaylistMessage" class="text-gray-500 text-center py-8 hidden">This playlist is empty. Add songs from your library!</p>
+        </div>
+    </div>
+
+    <!-- Message box for user feedback -->
+    <div id="messageBox" class="fixed bottom-8 left-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 pointer-events: none; z-50">
+    </div>
+
+    <script>
+        // Set up PDF.js worker source (needed if PDF previews were ever in playlist, keeping for consistency)
+        // This worker reference should be after the main pdf.min.js script is loaded.
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        // --- DOM Element References ---
+        const messageBox = document.getElementById('messageBox');
+        const backButton = document.getElementById('backButton');
+        const playlistNameElement = document.getElementById('playlistName');
+        const playPlaylistButton = document.getElementById('playPlaylistButton');
+        const playlistSongsContainer = document.getElementById('playlistSongs');
+        const emptyPlaylistMessage = document.getElementById('emptyPlaylistMessage');
+
+        // --- State Variables ---
+        let currentPlaylistId = null;
+        let currentPlaylist = null; // Stores the full playlist object
+        let draggedIndex = null; // Index of the song being dragged
+
+        // --- Utility Functions ---
+        /**
+         * Shows a temporary message box to the user.
+         * @param {string} message - The message to display.
+         * @param {number} duration - How long the message should be visible in milliseconds.
+         */
+        function showMessage(message, duration = 3000) {
+            messageBox.textContent = message;
+            messageBox.classList.remove('opacity-0');
+            messageBox.classList.add('opacity-100');
+            setTimeout(() => {
+                messageBox.classList.remove('opacity-100');
+                messageBox.classList.add('opacity-0');
+            }, duration);
+        }
+
+        /**
+         * Fetches a single playlist by its ID from the Flask API.
+         * @param {number} playlistId - The ID of the playlist to fetch.
+         * @returns {Promise<object|null>} The playlist data or null if not found/error.
+         */
+        async function fetchPlaylistById(playlistId) {
+            console.log(`[playlist.html] Fetching playlist with ID: ${playlistId}`);
+            try {
+                const response = await fetch(`/api/playlists/${playlistId}`);
+                console.log(`[playlist.html] Response status for playlist ID ${playlistId}: ${response.status}`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`[playlist.html] Error response for playlist ID ${playlistId}: ${errorText}`);
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+                }
+                const data = await response.json();
+                console.log(`[playlist.html] Successfully fetched playlist data for ID ${playlistId}:`, data);
+                return data;
+            } catch (error) {
+                console.error("[playlist.html] Error fetching playlist:", error);
+                showMessage("Failed to load playlist details.", 3000);
+                return null;
+            }
+        }
+
+        /**
+         * Renders the songs within the current playlist.
+         */
+        async function renderPlaylistSongs() {
+            console.log("[playlist.html] Attempting to render playlist songs.");
+            console.log("[playlist.html] Current playlist data for rendering:", currentPlaylist);
+
+            playlistSongsContainer.innerHTML = ''; // Clear existing songs
+
+            if (!currentPlaylist || !currentPlaylist.songs || currentPlaylist.songs.length === 0) {
+                console.log("[playlist.html] Playlist is empty or currentPlaylist is null/invalid.");
+                emptyPlaylistMessage.classList.remove('hidden');
+                playPlaylistButton.classList.add('button-disabled');
+                playPlaylistButton.disabled = true;
+                return;
+            } else {
+                emptyPlaylistMessage.classList.add('hidden');
+                playPlaylistButton.classList.remove('button-disabled');
+                playPlaylistButton.disabled = false;
+            }
+
+            playlistNameElement.textContent = currentPlaylist.name;
+
+            currentPlaylist.songs.forEach((song, index) => {
+                console.log(`[playlist.html] Rendering song: ${song.name} (ID: ${song.id}, Index: ${index})`);
+                const songElement = document.createElement('div');
+                songElement.className = 'playlist-song-item';
+                songElement.setAttribute('draggable', 'true'); // Make item draggable
+                songElement.dataset.songId = song.id; // Store song ID
+                songElement.dataset.index = index; // Store current index
+
+                songElement.innerHTML = `
+                    <i class="fas fa-file-pdf icon"></i>
+                    <span class="name">${song.name}</span>
+                    <div class="controls">
+                        <button class="open-button" data-song-id="${song.id}"><i class="fas fa-eye"></i> Open</button>
+                        <button class="remove-button" data-song-id="${song.id}"><i class="fas fa-trash-alt"></i> Remove</button>
+                    </div>
+                `;
+                playlistSongsContainer.appendChild(songElement);
+
+                // Add event listeners for controls
+                songElement.querySelector('.open-button').addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent drag events from interfering
+                    openPdfFromLibrary(song.id);
+                });
+                songElement.querySelector('.remove-button').addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent drag events from interfering
+                    removeSongFromPlaylist(song.id, currentPlaylistId);
+                });
+
+                // Add drag event listeners
+                songElement.addEventListener('dragstart', handleDragStart);
+                songElement.addEventListener('dragover', handleDragOver);
+                songElement.addEventListener('dragleave', handleDragLeave);
+                songElement.addEventListener('drop', handleDrop);
+                songElement.addEventListener('dragend', handleDragEnd);
+            });
+        }
+
+        /**
+         * Removes a song from the current playlist via API.
+         * @param {number} songId - The ID of the song to remove.
+         * @param {number} playlistId - The ID of the playlist to remove from.
+         */
+        async function removeSongFromPlaylist(songId, playlistId) {
+            if (!confirm('Are you sure you want to remove this song from the playlist?')) {
+                return;
+            }
+            try {
+                const response = await fetch(`/api/playlists/${playlistId}/songs/${songId}`, {
+                    method: 'DELETE',
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const result = await response.json();
+                showMessage(result.message, 2500);
+
+                // Update currentPlaylist state and re-render
+                currentPlaylist.songs = currentPlaylist.songs.filter(song => song.id !== songId);
+                // Reassign order_index to maintain sequence after removal
+                currentPlaylist.songs.forEach((song, index) => song.order_index = index);
+                await reorderSongsInDatabase(); // Save new order to database
+                renderPlaylistSongs();
+            } catch (error) {
+                console.error("[playlist.html] Error removing song:", error);
+                showMessage(`Failed to remove song: ${error.message}`, 3000);
+            }
+        }
+
+        /**
+         * Opens a PDF from the library by passing its ID to index.html.
+         * @param {number} itemId - The ID of the PDF item to open.
+         */
+        function openPdfFromLibrary(itemId) {
+            console.log(`[playlist.html] Opening PDF from library with ID: ${itemId}`);
+            localStorage.setItem('songToPlayFromPlaylistId', itemId);
+            window.location.href = 'index.html';
+        }
+
+        /**
+         * Reorders songs in the database based on the current `currentPlaylist.songs` order.
+         */
+        async function reorderSongsInDatabase() {
+            if (!currentPlaylist || currentPlaylist.songs.length === 0) {
+                return; // Nothing to reorder
+            }
+            const newOrder = currentPlaylist.songs.map(song => song.id);
+            console.log("[playlist.html] Reordering songs. New order:", newOrder);
+            try {
+                const response = await fetch(`/api/playlists/${currentPlaylistId}/reorder`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ new_order: newOrder })
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`[playlist.html] Error response for reorder: ${errorText}`);
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+                }
+                const result = await response.json();
+                console.log("[playlist.html] Reorder successful:", result.message);
+            } catch (error) {
+                console.error("[playlist.html] Error reordering playlist:", error);
+                showMessage("Failed to save new playlist order.", 3000);
+            }
+        }
+
+        // --- Drag and Drop Handlers ---
+        /**
+         * Handles the start of a drag operation.
+         * @param {DragEvent} e - The drag event.
+         */
+        function handleDragStart(e) {
+            draggedIndex = parseInt(e.target.dataset.index);
+            e.dataTransfer.effectAllowed = 'move';
+            // Set dummy data for Firefox compatibility
+            e.dataTransfer.setData('text/plain', draggedIndex);
+            e.target.classList.add('dragging');
+        }
+
+        /**
+         * Handles a drag operation over a draggable element.
+         * @param {DragEvent} e - The drag event.
+         */
+        function handleDragOver(e) {
+            e.preventDefault(); // Necessary to allow drop
+            e.dataTransfer.dropEffect = 'move';
+
+            const targetItem = e.currentTarget;
+            if (targetItem.classList.contains('dragging')) return; // Cannot drag over self
+
+            const rect = targetItem.getBoundingClientRect();
+            const midpoint = (rect.top + rect.bottom) / 2;
+
+            // Remove any existing drag-over styles
+            document.querySelectorAll('.playlist-song-item').forEach(item => {
+                item.classList.remove('drag-over-top', 'drag-over-bottom');
+            });
+
+            // Add drag-over style based on mouse position
+            if (e.clientY < midpoint) {
+                targetItem.classList.add('drag-over-top');
+            } else {
+                targetItem.classList.add('drag-over-bottom');
+            }
+        }
+
+        /**
+         * Handles a drag leaving a draggable element.
+         * @param {DragEvent} e - The drag event.
+         */
+        function handleDragLeave(e) {
+            // Remove all drag-over styles when leaving
+            e.currentTarget.classList.remove('drag-over-top', 'drag-over-bottom');
+        }
+
+        /**
+         * Handles a drop operation.
+         * @param {DragEvent} e - The drag event.
+         */
+        async function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation(); // Stop propagation to prevent parent elements from handling the drop
+
+            const droppedOnItem = e.currentTarget;
+            droppedOnItem.classList.remove('drag-over-top', 'drag-over-bottom'); // Clean up style
+
+            if (droppedOnItem.classList.contains('dragging')) return; // Dropped on itself
+
+            const targetIndex = parseInt(droppedOnItem.dataset.index);
+            let newIndex = targetIndex;
+
+            // Determine if dropping above or below the target item
+            const rect = droppedOnItem.getBoundingClientRect();
+            const midpoint = (rect.top + rect.bottom) / 2;
+
+            if (e.clientY > midpoint) {
+                newIndex++; // Drop below the target item
+            }
+
+            // Adjust newIndex if dropping before an item and it's not the first one,
+            // or if dropping after an item that is the last.
+            if (draggedIndex < newIndex) {
+                newIndex--; // If moving downwards, the target index shifts left by one
+            }
+
+            // Ensure newIndex is within bounds
+            newIndex = Math.max(0, Math.min(newIndex, currentPlaylist.songs.length - 1));
+
+            if (draggedIndex !== null && draggedIndex !== newIndex) {
+                const [draggedSong] = currentPlaylist.songs.splice(draggedIndex, 1);
+                currentPlaylist.songs.splice(newIndex, 0, draggedSong);
+
+                // Update order_index property for all songs in the array
+                currentPlaylist.songs.forEach((song, idx) => song.order_index = idx);
+
+                await reorderSongsInDatabase();
+                renderPlaylistSongs(); // Re-render to show new order
+            }
+        }
+
+        /**
+         * Handles the end of a drag operation.
+         * @param {DragEvent} e - The drag event.
+         */
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            // Remove any leftover drag-over styles from all items
+            document.querySelectorAll('.playlist-song-item').forEach(item => {
+                item.classList.remove('drag-over-top', 'drag-over-bottom');
+            });
+            draggedIndex = null;
+        }
+
+        // --- Event Listeners ---
+        backButton.addEventListener('click', () => {
+            console.log("[playlist.html] Back button clicked. Navigating to library.html");
+            window.location.href = 'library.html'; // Go back to the main library/playlists page
+        });
+
+        playPlaylistButton.addEventListener('click', () => {
+            if (currentPlaylist && currentPlaylist.songs.length > 0) {
+                console.log("[playlist.html] Playing playlist:", currentPlaylist.name);
+                // Store the entire queue of song IDs and playlist info in localStorage
+                localStorage.setItem('playlistSongsQueue', JSON.stringify(currentPlaylist.songs.map(song => song.id)));
+                localStorage.setItem('currentPlayingPlaylistId', currentPlaylist.id);
+                localStorage.setItem('currentPlayingPlaylistName', currentPlaylist.name);
+                window.location.href = 'index.html'; // Navigate back to the main app
+            } else {
+                showMessage('This playlist is empty. Nothing to play!', 2500);
+            }
+        });
+
+        // Initial render on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log("[playlist.html] DOMContentLoaded event fired.");
+            const urlParams = new URLSearchParams(window.location.search);
+            const playlistId = urlParams.get('playlistId');
+
+            if (playlistId) {
+                console.log(`[playlist.html] Found playlistId in URL: ${playlistId}`);
+                currentPlaylistId = parseInt(playlistId);
+                currentPlaylist = await fetchPlaylistById(currentPlaylistId);
+                renderPlaylistSongs();
+            } else {
+                console.warn("[playlist.html] No playlist ID provided in URL.");
+                showMessage("No playlist ID provided.", 3000);
+                playlistNameElement.textContent = "Error: No Playlist";
+                emptyPlaylistMessage.classList.remove('hidden');
+                emptyPlaylistMessage.textContent = "Please select a playlist from the library.";
+                playPlaylistButton.classList.add('button-disabled');
+                playPlaylistButton.disabled = true;
+            }
+        });
+    </script>
+</body>
+</html>

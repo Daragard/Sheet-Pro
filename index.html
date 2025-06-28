@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maestro Score</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- PDF.js library for rendering PDFs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        /* Apply the Inter font globally */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+        }
+        /* Hide scrollbars for a cleaner app-like look */
+        body::-webkit-scrollbar {
+            display: none;
+        }
+        body {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        /* Styling for disabled buttons to indicate their state */
+        .button-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none; /* Disable pointer events on disabled buttons */
+        }
+        /* Container for the PDF pages */
+        .pdf-page-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; /* Hide overflow from scaling */
+            position: relative; /* For overlay click areas */
+        }
+        /* Canvas element styling */
+        .pdf-page-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background-color: #fff; /* White background for the canvas */
+        }
+        /* Clickable overlays for page navigation */
+        .page-nav-overlay {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 50%; /* Each overlay takes 50% of its relative parent (pdfViewerContainer) */
+            z-index: 5; /* Above canvases, below loading overlay */
+            cursor: pointer;
+        }
+        .page-nav-overlay.left {
+            left: 0;
+        }
+        .page-nav-overlay.right {
+            right: 0;
+        }
+        /* Style for a custom message box */
+        #messageBox {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+        }
+        #messageBox.active {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col bg-gray-100 text-gray-800 overflow-hidden">
+
+    <!-- Header Section - Mimicking ForScore's top bar -->
+    <header class="flex items-center justify-between p-4 bg-gray-900 text-white shadow-lg z-10">
+        <!-- Left group of buttons -->
+        <div class="flex items-center space-x-4">
+            <!-- Library button restored -->
+            <button id="libraryButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                <i class="fas fa-book mr-2"></i> Library
+            </button>
+            <button id="playlistsButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                <i class="fas fa-list-alt mr-2"></i> Playlists
+            </button>
+        </div>
+
+        <!-- App Title in the center -->
+        <h1 class="text-2xl font-bold text-indigo-400">Maestro Score</h1>
+
+        <!-- Now Playing Info -->
+        <div id="nowPlayingInfo" class="flex flex-col items-center justify-center text-sm hidden">
+            <span id="currentSongTitle" class="font-semibold text-white"></span>
+            <span id="currentPlaylistName" class="text-gray-400"></span>
+        </div>
+
+        <!-- Right group of buttons -->
+        <div class="flex items-center space-x-4">
+            <button id="searchButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                <i class="fas fa-search mr-2"></i> Search
+            </button>
+            <button id="annotateButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                <i class="fas fa-pencil-alt mr-2"></i> Annotate
+            </button>
+            <button id="toolsButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                <i class="fas fa-wrench mr-2"></i> Tools
+            </button>
+            <button id="fullscreenToggle" class="flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                <i class="fas fa-expand-arrows-alt mr-2"></i> Fullscreen
+            </button>
+        </div>
+    </header>
+
+    <!-- Main content area that will handle layout changes based on orientation -->
+    <div id="appLayout" class="flex-1 flex flex-col lg:flex-row p-4 gap-4">
+        <!-- Playlist Container - Controlled purely by JS now -->
+        <div id="playlistContainer" class="w-full lg:w-64 bg-white rounded-xl shadow-lg p-4 overflow-y-auto flex-shrink-0 z-10 transition-all duration-300 ease-in-out hidden">
+            <!-- Buttons go here -->
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-700">Current Playlist</h2>
+                <div>
+                    <button id="closePlaylistButton" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <button id="movePlaylistButton" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200 ml-2">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <ul id="playlistItems" class="space-y-2">
+                <!-- Playlist items will be dynamically loaded here -->
+            </ul>
+        </div>
+
+        <!-- Main PDF Viewer Area -->
+        <main id="pdfMainContent" class="flex-1 flex flex-col items-center justify-center relative z-20">
+            <div class="bg-white rounded-xl shadow-lg w-full h-full overflow-hidden flex flex-col p-4">
+                <!-- PDF Viewer Canvases and Loading Overlay -->
+                <!-- Justify to start or end will be controlled by JS. No middle page anymore. -->
+                <div id="pdfViewerContainer" class="flex-1 flex items-stretch relative gap-x-0 flex-nowrap">
+                    <!-- Left Page Container (always visible if any page is rendered) -->
+                    <div id="pdfPageLeftContainer" class="pdf-page-container flex-shrink-0">
+                        <canvas id="pdfCanvasLeft" class="pdf-page-canvas"></canvas>
+                    </div>
+                    <!-- Right Page Container (shown for 2-page view) -->
+                    <div id="pdfPageRightContainer" class="pdf-page-container flex-shrink-0 hidden">
+                        <canvas id="pdfCanvasRight" class="pdf-page-canvas"></canvas>
+                    </div>
+
+                    <!-- Navigation Overlays (moved outside of pdfPageContainers to always be active) -->
+                    <div id="leftNavOverlay" class="page-nav-overlay left"></div>
+                    <div id="rightNavOverlay" class="page-nav-overlay right"></div>
+
+                    <!-- Loading Overlay -->
+                    <div id="loadingOverlay" class="absolute inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center text-white text-xl rounded-xl transition-opacity duration-300 opacity-0 pointer-events-none">
+                        <i class="fas fa-spinner fa-spin mr-2"></i> Loading PDF...
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Message box for user feedback -->
+    <div id="messageBox" class="fixed bottom-8 left-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 pointer-events: none; z-50">
+    </div>
+
+    <script>
+        // Set up the PDF.js worker source
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        // Select elements from the DOM
+        const body = document.body;
+        const messageBox = document.getElementById('messageBox');
+        const fullscreenToggle = document.getElementById('fullscreenToggle');
+        const libraryButton = document.getElementById('libraryButton');
+        const playlistsButton = document.getElementById('playlistsButton');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const pdfViewerContainer = document.getElementById('pdfViewerContainer');
+        const playlistContainer = document.getElementById('playlistContainer');
+        const closePlaylistButton = document.getElementById('closePlaylistButton');
+        const movePlaylistButton = document.getElementById('movePlaylistButton');
+        const playlistItems = document.getElementById('playlistItems');
+        const appLayout = document.getElementById('appLayout');
+
+        const pdfCanvasLeft = document.getElementById('pdfCanvasLeft');
+        const pdfContextLeft = pdfCanvasLeft.getContext('2d');
+        const pdfCanvasRight = document.getElementById('pdfCanvasRight');
+        const pdfContextRight = pdfCanvasRight.getContext('2d');
+
+        const pdfPageLeftContainer = document.getElementById('pdfPageLeftContainer');
+        const pdfPageRightContainer = document.getElementById('pdfPageRightContainer');
+
+        const leftNavOverlay = document.getElementById('leftNavOverlay');
+        const rightNavOverlay = document.getElementById('rightNavOverlay');
+
+        // Now Playing Info elements
+        const nowPlayingInfo = document.getElementById('nowPlayingInfo');
+        const currentSongTitle = document.getElementById('currentSongTitle');
+        const currentPlaylistName = document.getElementById('currentPlaylistName');
+
+        // Global PDF and Page State
+        let pdfDoc = null;
+        let currentPageNum = 1;
+        let currentPdfItemId = null; // Stores the ID of the currently loaded PDF from the library
+        
+        // Playlist related state
+        let currentPlaylistQueue = []; // Array of song IDs in the current playing playlist
+        let currentPlaylistQueueIndex = -1; // Index of the currently playing song in the queue
+        let currentPlayingPlaylistId = null; // ID of the playlist currently being played
+        let currentPlayingPlaylistName = null; // Name of the playlist currently being played
+
+        // UI state variables
+        let isPlaylistReversed = false;
+        let previousOrientationIsPortrait = window.innerHeight > window.innerWidth;
+        let isPlaylistSidebarOpen; // Initialized in loadPdf
+
+        let renderTaskLeft = null;
+        let renderTaskRight = null;
+
+        // Global variable for library data, fetched once on DOMContentLoaded
+        let libraryData = null; 
+
+        /**
+         * Shows a temporary message box to the user.
+         * @param {string} message - The message to display.
+         * @param {number} duration - How long the message should be visible in milliseconds.
+         */
+        function showMessage(message, duration = 3000) {
+            messageBox.textContent = message;
+            messageBox.classList.remove('opacity-0');
+            messageBox.classList.add('opacity-100');
+            setTimeout(() => {
+                messageBox.classList.remove('opacity-100');
+                messageBox.classList.add('opacity-0');
+            }, duration);
+        }
+
+        /**
+         * Shows or hides the loading overlay.
+         * @param {boolean} isLoading - True to show, false to hide.
+         */
+        function showLoading(isLoading) {
+            if (isLoading) {
+                loadingOverlay.classList.remove('opacity-0', 'pointer-events-none');
+                loadingOverlay.classList.add('opacity-100');
+            } else {
+                loadingOverlay.classList.remove('opacity-100');
+                loadingOverlay.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        /**
+         * Renders a specific PDF page onto a given canvas.
+         * @param {object} pdfPage - The PDF page object from PDF.js.
+         * @param {HTMLCanvasElement} canvas - The canvas element to render on.
+         * @param {CanvasRenderingContext2D} context - The 2D rendering context of the canvas.
+         * @param {string} canvasId - 'left' or 'right' to track the render task.
+         * @param {number} totalPagesDisplayed - The total number of pages currently being displayed (1 or 2).
+         */
+        async function renderPage(pdfPage, canvas, context, canvasId, totalPagesDisplayed) {
+            // Cancel any existing render task for this canvas
+            if (canvasId === 'left' && renderTaskLeft) {
+                renderTaskLeft.cancel();
+                renderTaskLeft = null;
+            } else if (canvasId === 'right' && renderTaskRight) {
+                renderTaskRight.cancel();
+                renderTaskRight = null;
+            }
+
+            // Get viewport for the page at a base scale
+            const viewport = pdfPage.getViewport({ scale: 1 });
+
+            // Get current dimensions of the pdfViewerContainer (parent of pdfPageContainers)
+            const availableViewerWidth = pdfViewerContainer.clientWidth;
+            const availableViewerHeight = pdfViewerContainer.clientHeight;
+
+            // Calculate maximum available width and height for a single page based on totalPagesDisplayed
+            const maxPageWidth = availableViewerWidth / totalPagesDisplayed;
+            const maxPageHeight = availableViewerHeight;
+
+            // Calculate scale to fit the page into its calculated slot, maintaining aspect ratio
+            const scaleX = maxPageWidth / viewport.width;
+            const scaleY = maxPageHeight / viewport.height;
+            const renderScale = Math.min(scaleX, scaleY);
+
+            const scaledViewport = pdfPage.getViewport({ scale: renderScale });
+
+            const resolutionScale = window.devicePixelRatio || 1;
+
+            canvas.width = scaledViewport.width * resolutionScale;
+            canvas.height = scaledViewport.height * resolutionScale;
+
+            // Set the *CSS* dimensions of the canvas element.
+            canvas.style.width = scaledViewport.width + 'px';
+            canvas.style.height = scaledViewport.height + 'px';
+
+            // Set the dimensions of the parent container to match the canvas dimensions
+            // This is crucial to make the container snug around the rendered PDF content
+            canvas.parentElement.style.width = scaledViewport.width + 'px';
+            canvas.parentElement.style.height = scaledViewport.height + 'px';
+
+            context.scale(resolutionScale, resolutionScale);
+
+            const renderContext = {
+                canvasContext: context,
+                viewport: scaledViewport,
+            };
+
+            // Store the render task
+            const renderTask = pdfPage.render(renderContext);
+            if (canvasId === 'left') {
+                renderTaskLeft = renderTask;
+            } else if (canvasId === 'right') {
+                renderTaskRight = renderTask;
+            }
+
+            try {
+                await renderTask.promise;
+            } catch (error) {
+                // Ignore render cancellation errors
+                if (error.name === 'RenderingCancelledException') {
+                    console.log(`Render for ${canvasId} cancelled.`);
+                } else {
+                    console.error(`Error rendering ${canvasId} page:`, error);
+                    throw error; // Re-throw other errors
+                }
+            } finally {
+                // Clear the task reference after completion or cancellation
+                if (canvasId === 'left') {
+                    renderTaskLeft = null;
+                } else if (canvasId === 'right') {
+                    renderTaskRight = null;
+                }
+                context.setTransform(1, 0, 0, 1, 0, 0); // Reset context transform
+            }
+        }
+
+        /**
+         * Renders PDF pages based on current page number and screen orientation.
+         */
+        async function renderPdfPages() {
+            if (!pdfDoc) {
+                return;
+            }
+
+            showLoading(true);
+
+            // Clear canvases before rendering new pages
+            pdfContextLeft.clearRect(0, 0, pdfCanvasLeft.width, pdfCanvasLeft.height);
+            pdfContextRight.clearRect(0, 0, pdfCanvasRight.width, pdfCanvasRight.height);
+
+            const currentIsPortrait = window.innerHeight > window.innerWidth;
+
+            let numPagesToDisplay = 1; // Default to 1 page mode
+            if (!currentIsPortrait && pdfDoc.numPages >= 2) {
+                numPagesToDisplay = 2; // 2-page mode in landscape if at least 2 pages exist
+            }
+
+            // Adjust currentPageNum based on orientation change and number of pages to display
+            let targetFirstVisiblePage = currentPageNum;
+            if (previousOrientationIsPortrait && !currentIsPortrait) { // Portrait to Landscape
+                if (numPagesToDisplay === 2) {
+                    // If moving to 2-page mode and current page is even, shift to previous odd page
+                    if (currentPageNum % 2 === 0 && currentPageNum > 1) {
+                        targetFirstVisiblePage = currentPageNum - 1;
+                    }
+                }
+            }
+            // Ensure currentPageNum doesn't go below 1 or beyond what's available
+            currentPageNum = Math.max(1, Math.min(targetFirstVisiblePage, pdfDoc.numPages - numPagesToDisplay + 1));
+            previousOrientationIsPortrait = currentIsPortrait;
+
+            // Handle playlist sidebar visibility based on orientation and isPlaylistSidebarOpen state
+            if (currentIsPortrait) {
+                playlistContainer.classList.add('hidden'); // Always hidden in portrait
+            } else { // Landscape mode
+                if (isPlaylistSidebarOpen) {
+                    playlistContainer.classList.remove('hidden');
+                } else {
+                    playlistContainer.classList.add('hidden');
+                }
+            }
+
+            // Adjust justify-content to center for all page display modes
+            pdfViewerContainer.classList.add('justify-center');
+            pdfViewerContainer.classList.remove('justify-start', 'justify-end');
+
+            // Hide all potential pages first, then show what's needed
+            pdfPageLeftContainer.style.display = 'none';
+            pdfPageRightContainer.style.display = 'none';
+
+            try {
+                // Always render the first page in the current view
+                if (pdfDoc.numPages >= currentPageNum) {
+                    pdfPageLeftContainer.style.display = 'flex';
+                    await renderPage(await pdfDoc.getPage(currentPageNum), pdfCanvasLeft, pdfContextLeft, 'left', numPagesToDisplay);
+                }
+
+                // Render second page (if 2-page mode)
+                if (numPagesToDisplay === 2 && pdfDoc.numPages >= currentPageNum + 1) {
+                    pdfPageRightContainer.style.display = 'flex';
+                    await renderPage(await pdfDoc.getPage(currentPageNum + 1), pdfCanvasRight, pdfContextRight, 'right', numPagesToDisplay);
+                }
+
+            } catch (error) {
+                console.error('Error rendering PDF pages:', error);
+                showMessage('Error rendering PDF pages. Please try again.', 5000);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        /**
+         * Loads a PDF document from a given URL.
+         * @param {string} url - The URL of the PDF document.
+         * @param {boolean} updatePlayedDate - Whether to update the last played date for the current PDF item. Defaults to true.
+         */
+        async function loadPdf(url, updatePlayedDate = true) {
+            showLoading(true);
+            try {
+                if (renderTaskLeft) { renderTaskLeft.cancel(); renderTaskLeft = null; }
+                if (renderTaskRight) { renderTaskRight.cancel(); renderTaskRight = null; }
+
+                pdfDoc = await pdfjsLib.getDocument(url).promise;
+                currentPageNum = 1; // Always start new PDF from page 1
+                
+                const initialIsPortrait = window.innerHeight > window.innerWidth;
+                isPlaylistSidebarOpen = !initialIsPortrait;
+
+                await renderPdfPages();
+                showMessage('PDF loaded successfully!');
+
+                if (updatePlayedDate && currentPdfItemId) {
+                    // Update its last played date in the backend
+                    fetch(`/api/library/${currentPdfItemId}/play`, { method: 'POST' })
+                        .then(res => res.json())
+                        .then(data => console.log(data.message || data.error))
+                        .catch(error => console.error("Error updating play date:", error));
+                }
+            } catch (error) {
+                console.error('Error loading PDF:', error);
+                showMessage('Failed to load PDF. Please check the URL or file.', 5000);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        /**
+         * Populates the playlist sidebar with songs from the current queue.
+         */
+        async function populatePlaylistSidebar() {
+            playlistItems.innerHTML = ''; // Clear existing items
+            if (currentPlaylistQueue.length === 0) {
+                playlistItems.innerHTML = '<li class="text-gray-500">No songs in playlist.</li>';
+                return;
+            }
+
+            // Fetch details for all songs in the queue to display their names
+            const songDetailsPromises = currentPlaylistQueue.map(id => 
+                fetch(`/api/library/${id}`).then(res => res.json())
+            );
+            const songDetails = await Promise.all(songDetailsPromises);
+
+            songDetails.forEach((song, index) => {
+                const li = document.createElement('li');
+                li.className = `p-2 rounded-md hover:bg-gray-200 cursor-pointer text-gray-800 ${index === currentPlaylistQueueIndex ? 'bg-indigo-100 font-semibold' : ''}`;
+                li.textContent = song.name;
+                li.dataset.songIndex = index;
+                li.addEventListener('click', () => {
+                    playSongFromQueue(index);
+                });
+                playlistItems.appendChild(li);
+            });
+        }
+
+        /**
+         * Plays a specific song from the current playlist queue.
+         * @param {number} index - The index of the song to play in the queue.
+         */
+        async function playSongFromQueue(index) {
+            if (index < 0 || index >= currentPlaylistQueue.length) {
+                showMessage("Invalid song index in playlist.", 2000);
+                return;
+            }
+            currentPlaylistQueueIndex = index;
+            const songIdToPlay = currentPlaylistQueue[currentPlaylistQueueIndex];
+            
+            // Update "Now Playing" info
+            updateNowPlayingInfo();
+
+            // Fetch the song details to get its PDF URL
+            try {
+                const response = await fetch(`/api/library/${songIdToPlay}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const songData = await response.json();
+                if (songData && songData.pdf_url) {
+                    currentPdfItemId = songData.id; // Set the current PDF item ID
+                    const localPdfUrl = `/local_pdfs/${songData.pdf_url}`;
+                    console.log('Loading song from playlist queue:', localPdfUrl);
+                    await loadPdf(localPdfUrl, true); // Pass true to update last played date
+                    // Update active song in sidebar
+                    populatePlaylistSidebar(); 
+                } else {
+                    showMessage("Could not find PDF URL for this song in the playlist.", 3000);
+                }
+            } catch (error) {
+                console.error("Error fetching song from playlist queue:", error);
+                showMessage("Error loading song from playlist. Skipping.", 3000);
+            }
+        }
+
+        /**
+         * Updates the "Now Playing" info in the header.
+         */
+        function updateNowPlayingInfo() {
+            if (currentPlaylistQueue.length > 0 && currentPlaylistQueueIndex !== -1) {
+                // Find the song details from the full library data (not ideal, but works for quick lookup)
+                // A better approach would be to store song names directly in the queue or fetch on demand.
+                const currentSongId = currentPlaylistQueue[currentPlaylistQueueIndex];
+                const currentSong = findSongDetailsInLibrary(currentSongId);
+
+                currentSongTitle.textContent = currentSong ? currentSong.name : "Unknown Song";
+                currentPlaylistName.textContent = currentPlayingPlaylistName ? `(Playlist: ${currentPlayingPlaylistName})` : "";
+                nowPlayingInfo.classList.remove('hidden');
+            } else {
+                currentSongTitle.textContent = "";
+                currentPlaylistName.textContent = "";
+                nowPlayingInfo.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Finds song details in the global libraryData. This is a temporary helper.
+         * @param {number} songId - The ID of the song to find.
+         * @returns {object|null} The song object or null if not found.
+         */
+        function findSongDetailsInLibrary(songId) {
+            if (!libraryData || !libraryData.contents) return null;
+
+            let foundSong = null;
+            function searchFolders(items) {
+                for (const item of items) {
+                    if (item.id === songId) {
+                        foundSong = item;
+                        return true;
+                    }
+                    if (item.type === 'folder' && item.contents) {
+                        if (searchFolders(item.contents)) return true;
+                    }
+                }
+                return false;
+            }
+            searchFolders(libraryData.contents);
+            return foundSong;
+        }
+
+
+        /**
+         * Toggles fullscreen mode for the document.
+         */
+        function toggleFullscreen() {
+            // Check if playlistContainer is open, and if so, prevent fullscreen until it's closed
+            if (playlistContainer.classList.contains('translate-x-0') || (!playlistContainer.classList.contains('hidden') && window.innerWidth <= 1024)) { // For smaller screens, hidden means closed.
+                 showMessage("Please close the Playlist panel before entering fullscreen mode.", 3000);
+                 return;
+             }
+
+            if (!document.fullscreenElement &&
+                !document.webkitFullscreenElement &&
+                !document.mozFullScreenElement &&
+                !document.msFullscreenElement) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        showMessage(`Error entering fullscreen: ${err.message}`, 5000);
+                        console.error("Error attempting to enable full-screen mode:", err);
+                    });
+                } else if (document.documentElement.webkitRequestFullscreen) {
+                    document.documentElement.webkitRequestFullscreen().catch(err => {
+                        showMessage(`Error entering fullscreen: ${err.message}`, 5000);
+                        console.error("Error attempting to enable full-screen mode (webkit):", err);
+                    });
+                } else if (document.documentElement.msRequestFullscreen) {
+                    document.documentElement.msRequestFullscreen().catch(err => {
+                        showMessage(`Error entering fullscreen: ${err.message}`, 5000);
+                        console.error("Error attempting to enable full-screen mode (ms):", err);
+                    });
+                } else {
+                    showMessage("Fullscreen mode is not supported by your browser.", 5000);
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        }
+
+        // Add event listener to the fullscreen toggle button
+        fullscreenToggle.addEventListener('click', toggleFullscreen);
+
+        // Event listeners for fullscreen changes to re-render PDF pages
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                showMessage("Entered fullscreen mode!");
+            } else {
+                showMessage("Exited fullscreen mode.");
+            }
+            // Small delay to ensure browser layout has settled
+            setTimeout(() => {
+                if (pdfDoc) {
+                    renderPdfPages();
+                }
+            }, 50);
+        });
+        document.addEventListener('webkitfullscreenchange', () => {
+            if (document.webkitFullscreenElement) {
+                showMessage("Entered fullscreen mode!");
+            } else {
+                showMessage("Exited fullscreen mode.");
+            }
+            setTimeout(() => {
+                if (pdfDoc) {
+                    renderPdfPages();
+                }
+            }, 50);
+        });
+        document.addEventListener('msfullscreenchange', () => {
+            if (document.msFullscreenElement) {
+                showMessage("Entered fullscreen mode!");
+            } else {
+                showMessage("Exited fullscreen mode.");
+            }
+            setTimeout(() => {
+                if (pdfDoc) {
+                    renderPdfPages();
+                }
+            }, 50);
+        });
+
+        // Add event listener to the "Library" button to open the library page
+        libraryButton.addEventListener('click', () => {
+            window.location.href = 'library.html';
+        });
+
+        // Add event listener to the "Playlists" button to toggle the playlist sidebar
+        playlistsButton.addEventListener('click', () => {
+            isPlaylistSidebarOpen = !isPlaylistSidebarOpen;
+            if (playlistContainer.classList.contains('hidden')) {
+                playlistContainer.classList.remove('hidden');
+            } else {
+                playlistContainer.classList.add('hidden');
+            }
+            if (isPlaylistSidebarOpen) {
+                populatePlaylistSidebar(); // Populate sidebar when it opens
+            }
+            if (pdfDoc) {
+                renderPdfPages(); // Re-render to adjust layout based on sidebar visibility
+            }
+        });
+
+        // Add event listener to the close button inside the playlist sidebar
+        closePlaylistButton.addEventListener('click', () => {
+            playlistContainer.classList.add('hidden');
+            isPlaylistSidebarOpen = false;
+            if (pdfDoc) {
+                renderPdfPages(); // Re-render to adjust layout
+            }
+        });
+
+        // Add event listener to the move playlist button to reverse layout
+        movePlaylistButton.addEventListener('click', () => {
+            const currentIsPortrait = window.innerHeight > window.innerWidth;
+
+            if (currentIsPortrait) {
+                appLayout.classList.toggle('flex-col-reverse');
+            } else {
+                appLayout.classList.toggle('lg:flex-row-reverse');
+            }
+            isPlaylistReversed = !isPlaylistReversed;
+        });
+
+        // Event listener for navigating pages within a PDF or songs within a playlist
+        leftNavOverlay.addEventListener('click', async () => {
+            if (!pdfDoc) return;
+            const currentIsPortrait = window.innerHeight > window.innerWidth;
+            let step = 1;
+            let currentPagesToDisplay = 1;
+            if (!currentIsPortrait && pdfDoc.numPages >= 2) {
+                currentPagesToDisplay = 2;
+            }
+            step = currentPagesToDisplay;
+
+            // Try to go to previous page in current PDF
+            if (currentPageNum > 1) {
+                currentPageNum = Math.max(1, currentPageNum - step);
+                await renderPdfPages(); // Render without updating play date
+            } else {
+                // If at the beginning of the current PDF, try to go to the previous song in playlist
+                if (currentPlaylistQueue.length > 0 && currentPlaylistQueueIndex > 0) {
+                    playSongFromQueue(currentPlaylistQueueIndex - 1);
+                } else {
+                    showMessage("You are on the first page(s) of the first song.", 2000);
+                }
+            }
+        });
+
+        rightNavOverlay.addEventListener('click', async () => {
+            if (!pdfDoc) return;
+            const currentIsPortrait = window.innerHeight > window.innerWidth;
+            let step = 1;
+            let currentPagesToDisplay = 1;
+            if (!currentIsPortrait && pdfDoc.numPages >= 2) {
+                currentPagesToDisplay = 2;
+            }
+            step = currentPagesToDisplay;
+
+            let maxAdvancePage = pdfDoc.numPages - (step - 1);
+            if (maxAdvancePage < 1) maxAdvancePage = 1;
+
+            // Try to go to next page in current PDF
+            if (currentPageNum < maxAdvancePage) {
+                currentPageNum = Math.min(maxAdvancePage, currentPageNum + step);
+                await renderPdfPages(); // Render without updating play date
+            } else {
+                // If at the end of the current PDF, try to go to the next song in playlist
+                if (currentPlaylistQueue.length > 0 && currentPlaylistQueueIndex < currentPlaylistQueue.length - 1) {
+                    playSongFromQueue(currentPlaylistQueueIndex + 1);
+                } else {
+                    showMessage("You are on the last page(s) of the last song.", 2000);
+                }
+            }
+        });
+
+        // Event listener for window resize to re-render PDF pages and adjust layout
+        window.addEventListener('resize', () => {
+            if (pdfDoc) {
+                renderPdfPages();
+            }
+            const currentIsPortrait = window.innerHeight > window.innerWidth;
+            if (isPlaylistReversed) {
+                if (currentIsPortrait) {
+                    appLayout.classList.add('flex-col-reverse');
+                    appLayout.classList.remove('lg:flex-row-reverse');
+                } else {
+                    appLayout.classList.remove('flex-col-reverse');
+                    appLayout.classList.add('lg:flex-row-reverse');
+                }
+            } else {
+                appLayout.classList.remove('flex-col-reverse');
+                appLayout.classList.remove('lg:flex-row-reverse');
+            }
+        });
+
+        // Other header button functionality (for this app version)
+        document.getElementById('searchButton').addEventListener('click', () => showMessage('Search functionality coming soon!', 2000));
+        document.getElementById('annotateButton').addEventListener('click', () => showMessage('Annotation tools coming soon!', 2000));
+        document.getElementById('toolsButton').addEventListener('click', () => showMessage('More tools coming soon!', 2000));
+
+
+        // Initial setup on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Fetch library data globally first
+            await fetchLibraryData(); 
+
+            // Check if a playlist queue needs to be played (passed from playlist.html via localStorage)
+            const playlistQueueString = localStorage.getItem('playlistSongsQueue');
+            const storedPlaylistId = localStorage.getItem('currentPlayingPlaylistId');
+            const storedPlaylistName = localStorage.getItem('currentPlayingPlaylistName');
+
+            if (playlistQueueString && storedPlaylistId && storedPlaylistName) {
+                currentPlaylistQueue = JSON.parse(playlistQueueString);
+                currentPlayingPlaylistId = parseInt(storedPlaylistId);
+                currentPlayingPlaylistName = storedPlaylistName;
+                currentPlaylistQueueIndex = 0; // Start with the first song in the queue
+
+                localStorage.removeItem('playlistSongsQueue'); // Clear after loading
+                localStorage.removeItem('currentPlayingPlaylistId');
+                localStorage.removeItem('currentPlayingPlaylistName');
+
+                // Load the first song from the queue
+                await playSongFromQueue(currentPlaylistQueueIndex);
+            } else {
+                // Check if a single song needs to be played (from library.html via localStorage)
+                const songToPlayId = localStorage.getItem('songToPlayFromPlaylistId');
+                if (songToPlayId) {
+                    localStorage.removeItem('songToPlayFromPlaylistId'); // Clear after loading
+
+                    // Fetch the song details from the backend
+                    try {
+                        const response = await fetch(`/api/library/${songToPlayId}`);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        const songData = await response.json();
+                        if (songData && songData.pdf_url) {
+                            currentPdfItemId = songData.id;
+                            const localPdfUrl = `/local_pdfs/${songData.pdf_url}`;
+                            console.log('Attempting to load PDF from URL (single song):', localPdfUrl);
+                            await loadPdf(localPdfUrl, true); // Update last played date for single song
+                            currentSongTitle.textContent = songData.name;
+                            nowPlayingInfo.classList.remove('hidden');
+                        } else {
+                            showMessage("Could not find PDF URL for the selected song.", 3000);
+                            const fallbackUrl = 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf';
+                            console.log('Falling back to default PDF:', fallbackUrl);
+                            await loadPdf(fallbackUrl, false); // Don't update date for fallback
+                        }
+                    } catch (error) {
+                        console.error("Error fetching single song details:", error);
+                        showMessage("Error loading song. Loading default PDF.", 3000);
+                        const fallbackUrl = 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf';
+                        console.log('Falling back to default PDF due to fetch error:', fallbackUrl);
+                        await loadPdf(fallbackUrl, false);
+                    }
+                } else {
+                    // Default PDF to load if no song or playlist is specified
+                    const defaultUrl = 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf';
+                    console.log('Loading default PDF (no song or playlist selected):', defaultUrl);
+                    await loadPdf(defaultUrl, false); // Don't update date for default
+                }
+            }
+            updateNowPlayingInfo(); // Ensure info is updated after all loading
+        });
+
+        async function fetchLibraryData() {
+            console.log("Fetching library data...");
+            try {
+                const response = await fetch('/api/library');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                libraryData = await response.json();
+                console.log("Library data fetched:", libraryData);
+            } catch (error) {
+                console.error("Error fetching library data:", error);
+                showMessage("Failed to load library data.", 3000);
+                // Set libraryData to an empty structure so app doesn't break
+                libraryData = { name: "Root", type: "folder", contents: [] }; 
+            }
+        }
+    </script>
+</body>
+</html>
