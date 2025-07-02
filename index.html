@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maestro Score</title>
+    <title>Sheet Pro</title>
     <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome for icons -->
@@ -91,16 +91,16 @@
                 <i class="fas fa-book mr-2"></i> Library
             </button>
             <button id="setlistsButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                <i class="fas fa-list-alt mr-2"></i> Setlists
+                <i class="fas fa-list-alt mr-2"></i> Playlist
             </button>
         </div>
 
         <!-- App Title in the center -->
-        <h1 class="text-2xl font-bold text-indigo-400">Maestro Score</h1>
+        <h1 class="text-2xl font-bold text-indigo-400">Sheet Pro</h1>
 
         <!-- Right group of buttons -->
         <div class="flex items-center space-x-4">
-            <button id="searchButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+            <!-- <button id="searchButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
                 <i class="fas fa-search mr-2"></i> Search
             </button>
             <button id="annotateButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
@@ -108,7 +108,7 @@
             </button>
             <button id="toolsButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
                 <i class="fas fa-wrench mr-2"></i> Tools
-            </button>
+            </button> -->
             <button id="fullscreenToggle" class="flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
                 <i class="fas fa-expand-arrows-alt mr-2"></i> Fullscreen
             </button>
@@ -134,6 +134,12 @@
             <ul id="setlistItems" class="space-y-2">
                 <!-- Setlist items will be dynamically inserted here -->
             </ul>
+        </div>
+
+        <!-- Page Info Container - Displays page numbers when setlist is not active -->
+        <!-- This container will now always be hidden if not in playlist mode, as per user request -->
+        <div id="pageInfoContainer" class="w-full lg:w-64 bg-white rounded-xl shadow-lg p-4 flex-shrink-0 z-10 transition-all duration-300 ease-in-out hidden flex-col items-center justify-center text-gray-700 text-2xl font-bold">
+            <span id="currentPageOfTotal"></span>
         </div>
 
         <!-- Main PDF Viewer Area -->
@@ -220,8 +226,12 @@
         const closeSetlistButton = document.getElementById('closeSetlistButton');
         const moveSetlistButton = document.getElementById('moveSetlistButton');
         const appLayout = document.getElementById('appLayout');
-        const setlistTitleElement = document.getElementById('setlistTitle');
+        const setlistTitleElement = document.getElementById('setlistTitle'); // Still used for the main title
         const setlistItemsUl = document.getElementById('setlistItems');
+
+        // New elements for page number display
+        const pageInfoContainer = document.getElementById('pageInfoContainer');
+        const currentPageOfTotalSpan = document.getElementById('currentPageOfTotal');
 
 
         const pdfCanvasLeft = document.getElementById('pdfCanvasLeft');
@@ -256,7 +266,7 @@
 
 
         /**
-         * Shows a temporary message box to the user.
+         * Displays a temporary message box to the user.
          * @param {string} message - The message to display.
          * @param {number} duration - How long the message should be visible in milliseconds.
          */
@@ -391,6 +401,10 @@
          */
         async function renderPdfPages() {
             if (!pdfDoc) {
+                // If no PDF is loaded, ensure both containers are hidden and page info is cleared
+                setlistContainer.classList.add('hidden');
+                pageInfoContainer.classList.add('hidden');
+                currentPageOfTotalSpan.textContent = '';
                 return;
             }
 
@@ -421,12 +435,15 @@
             currentPageNum = Math.max(1, Math.min(targetFirstVisiblePage, pdfDoc.numPages - numPagesToDisplay + 1));
             previousOrientationIsPortrait = currentIsPortrait;
 
-            // Handle setlist visibility based on orientation and isPlaylistActive state
-            if (currentIsPortrait || !isPlaylistActive) { // Hidden in portrait OR if no playlist is active
-                setlistContainer.classList.add('hidden');
-            } else { // Landscape mode AND playlist is active
+            // Handle setlist and pageInfoContainer visibility based on orientation and isPlaylistActive state
+            if (!currentIsPortrait && isPlaylistActive) { // Landscape and playlist active
                 setlistContainer.classList.remove('hidden');
+                pageInfoContainer.classList.add('hidden'); // Hide page info when setlist is shown
+            } else { // Portrait OR not in playlist mode (single song)
+                setlistContainer.classList.add('hidden');
+                pageInfoContainer.classList.add('hidden'); // Always hide both if not in playlist mode or if in portrait
             }
+
 
             // Adjust justify-content to center for all page display modes
             pdfViewerContainer.classList.add('justify-center');
@@ -681,7 +698,7 @@
             if (currentPageNum > 1) {
                 currentPageNum = Math.max(1, currentPageNum - step);
                 console.log(`[LeftNav] Going back page. New currentPageNum: ${currentPageNum}`);
-                renderPdfPages();
+                await renderPdfPages(); // Await the rendering
             } else if (isPlaylistActive && currentSongIndexInPlaylist > 0) {
                 // If on the first page AND a playlist is active AND there's a previous song
                 currentSongIndexInPlaylist--;
@@ -728,7 +745,7 @@
                 // Ensure it doesn't go beyond the last possible starting page for a set of 'step' pages
                 currentPageNum = Math.min(currentPageNum, pdfDoc.numPages - (step - 1));
                 console.log(`[RightNav] Advancing page. New currentPageNum: ${currentPageNum}`);
-                renderPdfPages();
+                await renderPdfPages(); // Await the rendering
             } else if (isPlaylistActive && currentSongIndexInPlaylist !== -1 && currentSongIndexInPlaylist < currentViewableSetlistSongs.length - 1) {
                 // If on the last page of current PDF AND a playlist is active AND there's a next song
                 currentSongIndexInPlaylist++;
@@ -803,10 +820,13 @@
             if (isPlaylistActive) {
                 console.log("[Setlist Init] playlistSongsQueue found in localStorage. Setting isPlaylistActive to true.");
                 
+                // Show setlist if in landscape and it was previously open
                 if (isSetlistOpen && !currentIsPortrait) {
                     setlistContainer.classList.remove('hidden');
-                } else if (currentIsPortrait) {
+                    pageInfoContainer.classList.add('hidden'); // Hide page info container
+                } else { // Hide setlist if portrait or not open
                     setlistContainer.classList.add('hidden');
+                    pageInfoContainer.classList.add('hidden'); // Also hide page info container
                 }
                 
                 const songIds = JSON.parse(playlistSongsQueueJSON);
@@ -819,14 +839,14 @@
                         if (response.ok) {
                             const songDetails = await response.json();
                             fetchedSongs.push(songDetails);
-                            console.log(`[Setlist Init] Fetched song details for ID ${songId}:`, songDetails.name);
+                            console.log(`[Setlist Init] Fetched song details for ID ${songId}: Name: ${songDetails.name}, File Path: ${songDetails.file_path}`); // Added file_path to log
                         } else {
                             console.warn(`[Setlist Init] Failed to fetch details for song ID ${songId}. Status: ${response.status}`);
-                            fetchedSongs.push({ id: songId, name: `Unknown Song ${songId}`, title: `Unknown Song ${songId}` });
+                            fetchedSongs.push({ id: songId, name: `Unknown Song ${songId}`, title: `Unknown Song ${songId}`, file_path: null }); // Ensure file_path is explicitly null
                         }
                     } catch (error) {
                         console.error(`[Setlist Init] Error fetching song details for ID ${songId}:`, error);
-                        fetchedSongs.push({ id: songId, name: `Error Loading Song ${songId}`, title: `Error Loading Song ${songId}` });
+                        fetchedSongs.push({ id: songId, name: `Error Loading Song ${songId}`, title: `Error Loading Song ${songId}`, file_path: null }); // Ensure file_path is explicitly null
                     }
                 }
                 currentViewableSetlistSongs = fetchedSongs;
@@ -844,13 +864,24 @@
                 }
 
                 // Load the determined initial song from the playlist
-                if (currentSongIndexInPlaylist !== -1 && currentViewableSetlistSongs[currentSongIndexInPlaylist] && currentViewableSetlistSongs[currentSongIndexInPlaylist].file_path) {
+                console.log(`[Setlist Init DEBUG] Before initial song load check: currentSongIndexInPlaylist=${currentSongIndexInPlaylist}, currentViewableSetlistSongs[currentSongIndexInPlaylist]=`, currentViewableSetlistSongs[currentSongIndexInPlaylist]);
+                if (currentSongIndexInPlaylist !== -1 && currentViewableSetlistSongs[currentSongIndexInPlaylist]) { // Removed .file_path check here, as loadPdf handles it
                     const initialSong = currentViewableSetlistSongs[currentSongIndexInPlaylist];
-                    await loadPdf(`/local_pdfs/${initialSong.file_path}`);
-                    renderSetlist(); // Re-render to highlight the initially loaded song
+                    console.log(`[Setlist Init] Attempting to load initial song: ${initialSong.name}, file_path: ${initialSong.file_path}`); // Added log
+                    if (initialSong.file_path) { // Perform file_path check before loading
+                        await loadPdf(`/local_pdfs/${initialSong.file_path}`);
+                        renderSetlist(); // Re-render to highlight the initially loaded song
+                    } else {
+                        showMessage(`Could not load the first song in the playlist ("${initialSong.name}"). File path missing.`, 5000);
+                        console.error("[Setlist Init] Initial playlist song missing file_path:", initialSong);
+                        pdfDoc = null; // Ensure pdfDoc is null
+                        pdfContextLeft.clearRect(0, 0, pdfCanvasLeft.width, pdfCanvasLeft.height);
+                        pdfContextRight.clearRect(0, 0, pdfCanvasRight.width, pdfCanvasRight.height);
+                        showLoading(false); // Ensure loading overlay is hidden
+                    }
                 } else {
-                    showMessage("Could not load the first song in the playlist. File path missing or invalid.", 5000);
-                    console.error("[Setlist Init] Initial playlist song missing file_path or invalid.");
+                    showMessage("Could not load the first song in the playlist. Playlist is empty or song index is invalid.", 5000);
+                    console.error("[Setlist Init] Initial playlist song missing or invalid index.");
                     // If the first song fails, do NOT load a default PDF. Keep it blank or show error.
                     pdfDoc = null; // Ensure pdfDoc is null
                     pdfContextLeft.clearRect(0, 0, pdfCanvasLeft.width, pdfCanvasLeft.height);
@@ -865,6 +896,8 @@
                 localStorage.setItem('isSetlistOpen', isSetlistOpen);
                 // If no playlist is active, ensure currentSongIndexInPlaylist is reset
                 currentSongIndexInPlaylist = -1; 
+                // Always hide page info container if not in playlist mode
+                pageInfoContainer.classList.add('hidden'); 
             }
             console.log("[Setlist Init] Setlist initialization complete. Final isSetlistOpen:", isSetlistOpen, "isPlaylistActive:", isPlaylistActive);
             if (pdfDoc) {
@@ -927,36 +960,66 @@
         document.addEventListener('DOMContentLoaded', async () => {
             console.log("[DOMContentLoaded] App starting up.");
             const songToPlayFromPlaylistId = localStorage.getItem('songToPlayFromPlaylistId');
+            const playlistSongsQueueJSON = localStorage.getItem('playlistSongsQueue');
             
-            if (songToPlayFromPlaylistId) {
-                // If a specific song ID is present in localStorage, it means we navigated from playlist.html
-                // This implies a playlist is active.
-                isPlaylistActive = true; 
+            // Determine if a playlist is active based on the presence of playlistSongsQueue
+            isPlaylistActive = !!playlistSongsQueueJSON;
+
+            // If a specific song ID is present, it means we navigated from library.html or playlist.html
+            // If it's from playlist.html, isPlaylistActive will already be true.
+            // If it's from library.html (single song), we explicitly set isPlaylistActive to false for this load.
+            if (songToPlayFromPlaylistId && !isPlaylistActive) {
+                console.log(`[DOMContentLoaded] Found songToPlayFromPlaylistId in localStorage: ${songToPlayFromPlaylistId}. Loading as individual song.`);
+                isPlaylistActive = false; // Ensure playlist mode is OFF for individual song loads
+                try {
+                    console.log(`[DOMContentLoaded] Fetching song details for ID: ${songToPlayFromPlaylistId}`);
+                    const response = await fetch(`/api/library/${songToPlayFromPlaylistId}`);
+                    if (response.ok) {
+                        const songDetails = await response.json();
+                        console.log(`[DOMContentLoaded] Song details fetched: Name: ${songDetails.name}, File Path: ${songDetails.file_path}`); // Added file_path to log
+                        if (songDetails && songDetails.file_path) {
+                            const localPdfUrl = `/local_pdfs/${songDetails.file_path}`;
+                            await loadPdf(localPdfUrl);
+                        } else {
+                            console.error(`[DOMContentLoaded] Fetched song details for ID ${songToPlayFromPlaylistId} missing 'file_path':`, songDetails);
+                            showMessage(`Selected song details incomplete. Could not load PDF.`, 3000);
+                            pdfDoc = null; // Ensure pdfDoc is null
+                            pdfContextLeft.clearRect(0, 0, pdfCanvasLeft.width, pdfCanvasLeft.height);
+                            pdfContextRight.clearRect(0, 0, pdfCanvasRight.width, pdfCanvasRight.height);
+                            showLoading(false);
+                        }
+                    } else {
+                        console.error(`[DOMContentLoaded] API call failed for song ID ${songToPlayFromPlaylistId}. Status: ${response.status}`);
+                        showMessage(`Could not load song ID ${songToPlayFromPlaylistId}.`, 3000);
+                        pdfDoc = null; // Ensure pdfDoc is null
+                        pdfContextLeft.clearRect(0, 0, pdfCanvasLeft.width, pdfCanvasLeft.height);
+                        pdfContextRight.clearRect(0, 0, pdfCanvasRight.width, pdfCanvasRight.height);
+                        showLoading(false);
+                    }
+                } catch (error) {
+                    console.error("[DOMContentLoaded] Error during API call for song ID:", songToPlayFromPlaylistId, error);
+                    showMessage("Error loading selected song.", 3000);
+                    pdfDoc = null; // Ensure pdfDoc is null
+                    pdfContextLeft.clearRect(0, 0, pdfCanvasLeft.width, pdfCanvasLeft.height);
+                    pdfContextRight.clearRect(0, 0, pdfCanvasRight.width, pdfCanvasRight.height);
+                    showLoading(false);
+                } finally {
+                    localStorage.removeItem('songToPlayFromPlaylistId'); // Clean up the localStorage flag
+                    console.log("[DOMContentLoaded] Cleaned up 'songToPlayFromPlaylistId' from localStorage.");
+                }
+            } else if (isPlaylistActive) {
+                // If a playlist is active (from previous session or navigation), initialize setlist
+                console.log("[DOMContentLoaded] Playlist active. Initializing setlist.");
+                await initializeSetlist();
             } else {
-                // If no specific song ID, check if a playlist queue exists from a previous session
-                isPlaylistActive = !!localStorage.getItem('playlistSongsQueue');
-            }
-
-            // Always initialize setlist first to populate currentViewableSetlistSongs
-            // and set initial isPlaylistActive state correctly.
-            await initializeSetlist(); 
-
-            // If a specific song was requested (from playlist.html), it will be handled by initializeSetlist
-            // If no specific song was requested AND no playlist is active, load default PDF.
-            // If a playlist is active, initializeSetlist has already loaded the first song.
-            if (!isPlaylistActive && !songToPlayFromPlaylistId) {
+                // No specific song or active playlist
                 console.log("[DOMContentLoaded] No specific song or active playlist. Displaying initial message.");
                 showMessage("No PDF loaded. Please select a song from the Library or play a playlist.", 5000);
-                // Clear any previously loaded PDF if there was one
                 pdfDoc = null;
                 pdfContextLeft.clearRect(0, 0, pdfCanvasLeft.width, pdfCanvasLeft.height);
                 pdfContextRight.clearRect(0, 0, pdfCanvasRight.width, pdfCanvasRight.height);
-                showLoading(false); // Ensure loading overlay is hidden
+                showLoading(false);
             }
-
-            // Clean up the localStorage flag here, after initializeSetlist has used it.
-            localStorage.removeItem('songToPlayFromPlaylistId');
-            console.log("[DOMContentLoaded] Cleaned up 'songToPlayFromPlaylistId' from localStorage.");
 
             console.log("[DOMContentLoaded] App startup routine complete.");
         });
