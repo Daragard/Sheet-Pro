@@ -140,11 +140,12 @@
             display: flex;
             align-items: center;
             padding: 1rem;
+            margin-bottom: 0.5rem; /* Added margin for spacing between items */
             border-radius: 0.5rem;
             background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             transition: background-color 0.2s ease-in-out;
             cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
         .playlist-list-item:hover {
             background-color: #e5e7eb;
@@ -158,6 +159,7 @@
             font-weight: 600;
             font-size: 1.1rem;
             color: #374151;
+            flex-grow: 1; /* Allow name to take available space */
         }
         .playlist-list-item .song-count {
             font-size: 0.8rem;
@@ -284,13 +286,18 @@
             margin-bottom: 0.25rem;
             font-size: 0.9rem;
         }
-        .metadata-item p {
+        .metadata-item p, .metadata-item input, .metadata-item textarea {
             background-color: #f9fafb;
             border: 1px solid #e5e7eb;
             padding: 0.75rem 1rem;
             border-radius: 0.5rem;
             font-size: 1rem;
             color: #1f2937;
+            width: 100%; /* Make inputs take full width */
+        }
+        .metadata-item input:disabled, .metadata-item textarea:disabled {
+            background-color: #e5e7eb; /* Slightly darker background for disabled inputs */
+            cursor: default;
         }
         .metadata-actions {
             margin-top: 1.5rem;
@@ -323,9 +330,31 @@
         #modalPlaylistsList {
             margin-top: 1rem;
         }
-        #modalPlaylistsList .playlist-list-item {
+        /* Adjusted style for items in songInPlaylistsList for better layout with remove button */
+        #songInPlaylistsList .playlist-item-with-remove {
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* Space out name and button */
+            padding: 0.75rem 1rem;
             margin-bottom: 0.5rem;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            color: #374151;
         }
+        #songInPlaylistsList .playlist-item-with-remove button {
+            background-color: #ef4444; /* Red for remove */
+            color: white;
+            padding: 0.3rem 0.6rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            transition: background-color 0.2s ease-in-out;
+        }
+        #songInPlaylistsList .playlist-item-with-remove button:hover {
+            background-color: #dc2626; /* Darker red on hover */
+        }
+
 
         /* Add to Playlist section in modal */
         #addToPlaylistSection {
@@ -460,33 +489,14 @@
             </header>
             <div id="songDetailsModalBody">
                 <aside id="songDetailsSidebar">
-                    <button id="metadataTabButton" class="active">Metadata</button>
-                    <button id="setlistsTabButton">Setlists</button>
+                    <!-- Swapped order of tabs -->
+                    <button id="playlistsTabButtonModal" class="active">Playlists</button>
+                    <button id="metadataTabButton">Metadata</button>
                 </aside>
                 <main id="songDetailsContentArea">
-                    <!-- Tab content will be rendered here -->
-                    <div id="metadataContent" class="tab-content">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Song Metadata</h3>
-                        <div class="metadata-item">
-                            <label>Name:</label>
-                            <p id="metadataName"></p>
-                        </div>
-                        <div class="metadata-item">
-                            <label>Date Created:</label>
-                            <p id="metadataDateCreated"></p>
-                        </div>
-                        <div class="metadata-item">
-                            <label>Last Played:</label>
-                            <p id="metadataLastPlayed"></p>
-                        </div>
-                        <div class="metadata-actions">
-                            <button id="renamePdfButton" class="primary"><i class="fas fa-pencil-alt mr-2"></i> Rename</button>
-                            <button id="openPdfInViewerButton" class="secondary"><i class="fas fa-eye mr-2"></i> Open in Viewer</button>
-                        </div>
-                    </div>
-
-                    <div id="setlistsContent" class="tab-content hidden">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-4">In These Setlists</h3>
+                    <!-- Swapped order of tab content divs -->
+                    <div id="playlistsContentModal" class="tab-content">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">In These Playlists</h3>
                         <div id="songInPlaylistsList" class="flex flex-col gap-2">
                             <p class="text-gray-600">Loading playlists...</p>
                         </div>
@@ -496,6 +506,61 @@
                             <div id="addPlaylistsDropdown">
                                 <!-- Playlists to add to dynamically loaded here -->
                             </div>
+                        </div>
+                    </div>
+
+                    <div id="metadataContent" class="tab-content hidden">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Song Metadata</h3>
+                        <div class="metadata-item">
+                            <label for="inputMetadataFilename">Filename:</label>
+                            <input type="text" id="inputMetadataFilename" disabled>
+                        </div>
+                        <div class="metadata-item">
+                            <label for="inputMetadataTitle">Title:</label>
+                            <input type="text" id="inputMetadataTitle">
+                        </div>
+                        <div class="metadata-item">
+                            <label for="inputMetadataComposer">Composer:</label>
+                            <input type="text" id="inputMetadataComposer">
+                        </div>
+                        <div class="metadata-item">
+                            <label for="inputMetadataGenre">Genre:</label>
+                            <input type="text" id="inputMetadataGenre">
+                        </div>
+                        <div class="metadata-item">
+                            <label for="inputMetadataTag">Tag:</label>
+                            <input type="text" id="inputMetadataTag">
+                        </div>
+                        <div class="metadata-item">
+                            <label for="inputMetadataLabel">Label:</label>
+                            <input type="text" id="inputMetadataLabel">
+                        </div>
+                        <div class="metadata-item">
+                            <label for="inputMetadataRating">Rating:</label>
+                            <input type="text" id="inputMetadataRating">
+                        </div>
+                        <div class="metadata-item">
+                            <label for="inputMetadataDifficulty">Difficulty:</label>
+                            <input type="text" id="inputMetadataDifficulty">
+                        </div>
+                        <div class="metadata-item">
+                            <label for="inputMetadataTime">Time Signature:</label>
+                            <input type="text" id="inputMetadataTime">
+                        </div>
+                        <div class="metadata-item">
+                            <label for="inputMetadataKey">Key:</label>
+                            <input type="text" id="inputMetadataKey">
+                        </div>
+                        <div class="metadata-item">
+                            <label for="inputMetadataDateCreated">Date Created:</label>
+                            <input type="text" id="inputMetadataDateCreated">
+                        </div>
+                        <div class="metadata-item">
+                            <label for="inputMetadataLastPlayed">Last Played:</label>
+                            <input type="text" id="inputMetadataLastPlayed">
+                        </div>
+                        <div class="metadata-actions">
+                            <!-- Removed save, cancel, rename, and open in viewer buttons -->
                         </div>
                     </div>
                 </main>
@@ -547,16 +612,26 @@
         const closeModalButton = document.getElementById('closeModalButton');
         const modalSongTitle = document.getElementById('modalSongTitle');
         const metadataTabButton = document.getElementById('metadataTabButton');
-        const setlistsTabButton = document.getElementById('setlistsTabButton');
+        const playlistsTabButtonModal = document.getElementById('playlistsTabButtonModal'); 
         const metadataContent = document.getElementById('metadataContent');
-        const setlistsContent = document.getElementById('setlistsContent');
-        const metadataName = document.getElementById('metadataName');
-        const metadataDateCreated = document.getElementById('metadataDateCreated');
-        const metadataLastPlayed = document.getElementById('metadataLastPlayed');
-        const renamePdfButton = document.getElementById('renamePdfButton');
-        const openPdfInViewerButton = document.getElementById('openPdfInViewerButton');
+        const playlistsContentModal = document.getElementById('playlistsContentModal'); 
+        // Renamed and Open in Viewer buttons are removed
         const songInPlaylistsList = document.getElementById('songInPlaylistsList');
         const addPlaylistsDropdown = document.getElementById('addPlaylistsDropdown');
+
+        // New metadata input references
+        const inputMetadataFilename = document.getElementById('inputMetadataFilename'); // Renamed from inputMetadataName
+        const inputMetadataTitle = document.getElementById('inputMetadataTitle');
+        const inputMetadataComposer = document.getElementById('inputMetadataComposer');
+        const inputMetadataGenre = document.getElementById('inputMetadataGenre');
+        const inputMetadataTag = document.getElementById('inputMetadataTag');
+        const inputMetadataLabel = document.getElementById('inputMetadataLabel');
+        const inputMetadataRating = document.getElementById('inputMetadataRating');
+        const inputMetadataDifficulty = document.getElementById('inputMetadataDifficulty');
+        const inputMetadataTime = document.getElementById('inputMetadataTime');
+        const inputMetadataKey = document.getElementById('inputMetadataKey');
+        const inputMetadataDateCreated = document.getElementById('inputMetadataDateCreated'); 
+        const inputMetadataLastPlayed = document.getElementById('inputMetadataLastPlayed'); 
 
         // --- State Variables ---
         let currentLibraryPath = []; // Array of folder names representing the current path for Library view
@@ -564,9 +639,10 @@
         let navigationHistory = [];
         let historyIndex = -1;
         let currentView = 'library'; // 'library' or 'playlists'
-        let selectedItemForModal = null; // Stores the PDF item clicked for modal (replaces selectedItemForContextMenu)
+        let selectedItemForModal = null; // Stores the PDF item clicked for modal
         let libraryData = null; // Will be fetched from server
         let playlistsData = []; // Will be fetched from server
+        // No longer need originalMetadataValues as changes save automatically
 
 
         // --- Utility Functions ---
@@ -578,6 +654,23 @@
                 messageBox.classList.remove('opacity-100');
                 messageBox.classList.add('opacity-0');
             }, duration);
+        }
+
+        /**
+         * Function to remove a file extension from a string.
+         * @param {string} filename - The filename with or without an extension.
+         * @returns {string} The filename without its extension.
+         */
+        function removeFileExtension(filename) {
+            const lastDotIndex = filename.lastIndexOf('.');
+            if (lastDotIndex === -1) {
+                return filename; // No extension found
+            }
+            // Check if it's a hidden file (e.g., .htaccess) or just a dot
+            if (lastDotIndex === 0 || lastDotIndex === filename.length - 1) {
+                return filename;
+            }
+            return filename.substring(0, lastDotIndex);
         }
 
         /**
@@ -593,7 +686,8 @@
                 const data = await response.json();
                 libraryData = data; // Store the fetched data globally
                 return data;
-            } catch (error) {
+            }
+            catch (error) {
                 console.error("Error fetching library data:", error);
                 showMessage("Failed to load library data.", 3000);
                 return { name: "Root", type: "folder", contents: [] }; // Return empty structure on error
@@ -726,9 +820,11 @@
                     `;
                     itemElement.addEventListener('click', () => navigateToFolder(item.name));
                 } else if (item.type === 'pdf') {
+                    // Use item.title if available, otherwise filename without extension
+                    const displayName = item.title || removeFileExtension(item.name);
                     itemElement.innerHTML = `
                         <i class="fas fa-file-pdf icon pdf"></i>
-                        <span class="name">${item.name}</span>
+                        <span class="name">${displayName}</span>
                     `;
                     // Open modal on right-click/long-press
                     itemElement.addEventListener('contextmenu', (event) => openSongDetailsModal(event, item.id, item.name));
@@ -978,21 +1074,102 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const itemDetails = await response.json();
-                metadataName.textContent = itemDetails.name;
-                // Format dates for display
-                metadataDateCreated.textContent = itemDetails.date_created ? new Date(itemDetails.date_created).toLocaleString() : 'N/A';
-                metadataLastPlayed.textContent = itemDetails.date_last_played ? new Date(itemDetails.date_last_played).toLocaleString() : 'N/A';
+                
+                // Populate metadata fields
+                inputMetadataFilename.value = itemDetails.name || '';
+                // Default title to filename without extension if no title is provided
+                inputMetadataTitle.value = itemDetails.title || removeFileExtension(itemDetails.name) || ''; 
+                inputMetadataComposer.value = itemDetails.composer || '';
+                inputMetadataGenre.value = itemDetails.genre || '';
+                inputMetadataTag.value = itemDetails.tag || '';
+                inputMetadataLabel.value = itemDetails.label || '';
+                inputMetadataRating.value = itemDetails.rating || '';
+                inputMetadataDifficulty.value = itemDetails.difficulty || '';
+                inputMetadataTime.value = itemDetails.time || '';
+                inputMetadataKey.value = itemDetails.key || '';
+
+                // For date fields, parse and format for consistency
+                inputMetadataDateCreated.value = itemDetails.date_created ? new Date(itemDetails.date_created).toLocaleString() : '';
+                inputMetadataLastPlayed.value = itemDetails.date_last_played ? new Date(itemDetails.date_last_played).toLocaleString() : '';
+
+                // No longer store originalMetadataValues as there's no explicit cancel button
             } catch (error) {
                 console.error("Error fetching song details for modal:", error);
                 showMessage("Could not load song details.", 3000);
-                metadataName.textContent = itemName;
-                metadataDateCreated.textContent = 'Error loading';
-                metadataLastPlayed.textContent = 'Error loading';
+                // Clear inputs and set placeholders/error messages
+                inputMetadataFilename.value = itemName; // Keep original filename
+                inputMetadataTitle.value = removeFileExtension(itemName); // Default to cleaned filename
+                inputMetadataComposer.value = 'Error loading';
+                inputMetadataGenre.value = 'Error loading';
+                inputMetadataTag.value = 'Error loading';
+                inputMetadataLabel.value = 'Error loading';
+                inputMetadataRating.value = 'Error loading';
+                inputMetadataDifficulty.value = 'Error loading';
+                inputMetadataTime.value = 'Error loading';
+                inputMetadataKey.value = 'Error loading';
+                inputMetadataDateCreated.value = 'Error loading';
+                inputMetadataLastPlayed.value = 'Error loading';
             }
 
-            // Initially show metadata tab
-            switchSongDetailsTab('metadata');
+            // Initially show playlists tab
+            switchSongDetailsTab('playlists'); // Changed to 'playlists'
             songDetailsModal.classList.add('active'); // Show the modal
+        }
+
+        /**
+         * Saves metadata changes via API.
+         * This function is now triggered on blur of metadata input fields.
+         */
+        async function saveMetadataChanges() {
+            if (!selectedItemForModal) {
+                console.warn("No item selected for saving metadata. Skipping save.");
+                return;
+            }
+
+            const updatedMetadata = {
+                title: inputMetadataTitle.value.trim(),
+                composer: inputMetadataComposer.value.trim(),
+                genre: inputMetadataGenre.value.trim(),
+                tag: inputMetadataTag.value.trim(),
+                label: inputMetadataLabel.value.trim(),
+                rating: inputMetadataRating.value.trim(),
+                difficulty: inputMetadataDifficulty.value.trim(),
+                time: inputMetadataTime.value.trim(),
+                key: inputMetadataKey.value.trim(),
+                date_created: inputMetadataDateCreated.value.trim(), 
+                date_last_played: inputMetadataLastPlayed.value.trim() 
+            };
+
+            // Only attempt to save if any value has actually changed
+            // This requires storing the current values and comparing them before sending
+            // For now, simplify: if any field has focus and blur, it triggers a save.
+            // A more robust solution would track actual changes or debounce.
+            
+            // For filename, it's disabled. If it were editable, it would need to be included here too
+            // and handled by a specific rename API call if it changes.
+            
+            showMessage("Saving metadata changes...", 1000); // Shorter message for auto-save
+            try {
+                const response = await fetch(`/api/library/${selectedItemForModal.id}/metadata`, {
+                    method: 'POST', 
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updatedMetadata)
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    showMessage(result.message || "Metadata updated.", 1000);
+                    // After saving, re-fetch library data to ensure consistency across the app
+                    await fetchLibraryData();
+                    renderLibraryGrid(); // Re-render the grid to show updated titles if applicable
+                } else {
+                    showMessage(`Error: ${result.error || 'Could not save metadata.'}`, 2000);
+                }
+            } catch (error) {
+                console.error("Error saving metadata changes:", error);
+                showMessage("Network error: Could not save metadata changes.", 2000);
+            }
         }
 
         /**
@@ -1005,30 +1182,30 @@
 
         /**
          * Switches the active tab within the song details modal.
-         * @param {string} tabName - 'metadata' or 'setlists'.
+         * @param {string} tabName - 'metadata' or 'playlists'.
          */
         async function switchSongDetailsTab(tabName) {
             // Remove active class from all tab buttons and hide all content
             metadataTabButton.classList.remove('active');
-            setlistsTabButton.classList.remove('active');
+            playlistsTabButtonModal.classList.remove('active');
             metadataContent.classList.add('hidden');
-            setlistsContent.classList.add('hidden');
+            playlistsContentModal.classList.add('hidden');
 
             // Add active class to selected tab button and show its content
             if (tabName === 'metadata') {
                 metadataTabButton.classList.add('active');
                 metadataContent.classList.remove('hidden');
-            } else if (tabName === 'setlists') {
-                setlistsTabButton.classList.add('active');
-                setlistsContent.classList.remove('hidden');
-                await populateSongSetlists(); // Populate setlists when the tab is opened
+            } else if (tabName === 'playlists') {
+                playlistsTabButtonModal.classList.add('active');
+                playlistsContentModal.classList.remove('hidden');
+                await populateSongPlaylists(); // Populate playlists when the tab is opened
             }
         }
 
         /**
-         * Populates the list of setlists (playlists) a song is in within the modal.
+         * Populates the list of playlists a song is in within the modal.
          */
-        async function populateSongSetlists() {
+        async function populateSongPlaylists() {
             songInPlaylistsList.innerHTML = '<p class="text-gray-600">Loading playlists...</p>';
             addPlaylistsDropdown.innerHTML = ''; // Clear dropdown for adding
 
@@ -1051,13 +1228,24 @@
                 // Display playlists the song is already in
                 songInPlaylistsList.innerHTML = '';
                 if (songPlaylists.length === 0) {
-                    songInPlaylistsList.innerHTML = '<p class="text-gray-600">This song is not in any setlist yet.</p>';
+                    songInPlaylistsList.innerHTML = '<p class="text-gray-600">This song is not in any playlist yet.</p>';
                 } else {
                     songPlaylists.forEach(playlist => {
                         const playlistItem = document.createElement('div');
-                        playlistItem.className = 'playlist-list-item px-4 py-2'; // Reusing style
-                        playlistItem.textContent = playlist.name;
+                        playlistItem.className = 'playlist-item-with-remove'; 
+                        playlistItem.innerHTML = `
+                            <span>${playlist.name}</span>
+                            <button data-playlist-id="${playlist.id}" class="remove-from-playlist-button">
+                                <i class="fas fa-minus-circle"></i> Remove
+                            </button>
+                        `;
                         songInPlaylistsList.appendChild(playlistItem);
+
+                        // Attach event listener to the remove button
+                        playlistItem.querySelector('.remove-from-playlist-button').addEventListener('click', (e) => {
+                            const playlistIdToRemoveFrom = parseInt(e.currentTarget.dataset.playlistId);
+                            removeSongFromSpecificPlaylist(selectedItemForModal.id, playlistIdToRemoveFrom);
+                        });
                     });
                 }
 
@@ -1071,20 +1259,44 @@
                         button.textContent = playlist.name;
                         button.addEventListener('click', () => {
                             addPdfToPlaylist(selectedItemForModal.id, selectedItemForModal.name, playlist.id);
-                            // Refresh setlists after adding
-                            populateSongSetlists();
+                            // Refresh playlists after adding
+                            populateSongPlaylists();
                         });
                         addPlaylistsDropdown.appendChild(button);
                     });
                 }
 
             } catch (error) {
-                console.error("Error populating song setlists:", error);
-                songInPlaylistsList.innerHTML = '<p class="text-red-500">Error loading setlists.</p>';
+                console.error("Error populating song playlists:", error);
+                songInPlaylistsList.innerHTML = '<p class="text-red-500">Error loading playlists.</p>';
                 addPlaylistsDropdown.innerHTML = '<button disabled class="button-disabled">Error loading playlists.</button>';
             }
         }
 
+        /**
+         * Removes a song from a specific playlist via API call.
+         * @param {number} songId - The ID of the song to remove.
+         * @param {number} playlistId - The ID of the playlist from which to remove the song.
+         */
+        async function removeSongFromSpecificPlaylist(songId, playlistId) {
+            if (!confirm('Are you sure you want to remove this song from this playlist?')) {
+                return;
+            }
+            try {
+                const response = await fetch(`/api/playlists/${playlistId}/songs/${songId}`, {
+                    method: 'DELETE',
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const result = await response.json();
+                showMessage(result.message, 2500);
+                populateSongPlaylists(); // Re-populate to reflect removal
+            } catch (error) {
+                console.error("Error removing song from playlist:", error);
+                showMessage(`Failed to remove song from playlist: ${error.message}`, 3000);
+            }
+        }
 
         /**
          * Adds a PDF item to a specified playlist via API.
@@ -1172,7 +1384,7 @@
          */
         async function handleChangeLibraryFolder() {
             optionsDropdown.classList.remove('active'); // Close dropdown if opened from there
-            const newPath = prompt("Enter the new path for your PDF library folder (e.g., C:\\MyPdfs or /home/user/documents/pdfs):");
+            const newPath = prompt("Enter the new path for your PDF library folder (e.g., C:\\MyPdfs or /home/user/Music/Sheet Music):");
             if (newPath && newPath.trim() !== '') {
                 showMessage("Attempting to change library folder and rescan...", 3000);
                 try {
@@ -1202,69 +1414,6 @@
                 showMessage("Library folder change cancelled or empty path provided.", 2000);
             }
         }
-
-        /**
-         * Handles renaming a PDF file from within the modal.
-         */
-        async function handleRenamePdf() {
-            if (!selectedItemForModal) {
-                showMessage("No item selected for renaming.", 2000);
-                return;
-            }
-
-            const oldName = selectedItemForModal.name;
-            let newName = prompt(`Rename "${oldName}":`, oldName);
-
-            if (newName === null) { // User clicked cancel
-                showMessage("Rename cancelled.", 2000);
-                return;
-            }
-
-            newName = newName.trim();
-
-            if (newName === '' || newName === oldName) {
-                showMessage("Rename cancelled or no change made.", 2000);
-                return;
-            }
-
-            // Ensure .pdf extension is preserved if it was present
-            if (oldName.toLowerCase().endsWith('.pdf') && !newName.toLowerCase().endsWith('.pdf')) {
-                newName += '.pdf';
-            } else if (!oldName.toLowerCase().endsWith('.pdf') && newName.toLowerCase().endsWith('.pdf')) {
-                // If old name didn't have PDF but new one does, that's fine.
-            } else if (!oldName.toLowerCase().endsWith('.pdf') && !newName.toLowerCase().endsWith('.pdf')) {
-                // If neither has PDF, ensure we're not renaming a folder etc. (handled by backend 'type' check)
-            }
-
-
-            showMessage(`Attempting to rename "${oldName}" to "${newName}"...`, 3000);
-            try {
-                const response = await fetch(`/api/library/rename/${selectedItemForModal.id}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ new_name: newName })
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    showMessage(result.message, 2500);
-                    // Update the displayed name in the modal and re-render library grid
-                    modalSongTitle.textContent = newName;
-                    metadataName.textContent = newName;
-                    await fetchLibraryData();
-                    renderLibraryGrid();
-                } else {
-                    showMessage(`Rename Error: ${result.error || 'Could not rename file.'}`, 4000);
-                }
-            } catch (error) {
-                console.error("Error renaming PDF:", error);
-                showMessage("Network error: Could not connect to rename file.", 4000);
-            }
-        }
-
 
         // --- Event Listeners ---
         homeButton.addEventListener('click', () => {
@@ -1297,17 +1446,22 @@
 
         // Song Details Modal Event Listeners
         closeModalButton.addEventListener('click', closeSongDetailsModal);
+        // Swapped order of tab button listeners
+        playlistsTabButtonModal.addEventListener('click', () => switchSongDetailsTab('playlists'));
         metadataTabButton.addEventListener('click', () => switchSongDetailsTab('metadata'));
-        setlistsTabButton.addEventListener('click', () => switchSongDetailsTab('setlists'));
-        renamePdfButton.addEventListener('click', handleRenamePdf);
-        openPdfInViewerButton.addEventListener('click', () => {
-            if (selectedItemForModal) {
-                openPdfFromLibrary(selectedItemForModal.id);
-            } else {
-                showMessage("No PDF selected to open.", 2000);
-            }
-        });
 
+        // Attach blur listeners for automatic saving
+        inputMetadataTitle.addEventListener('blur', saveMetadataChanges);
+        inputMetadataComposer.addEventListener('blur', saveMetadataChanges);
+        inputMetadataGenre.addEventListener('blur', saveMetadataChanges);
+        inputMetadataTag.addEventListener('blur', saveMetadataChanges);
+        inputMetadataLabel.addEventListener('blur', saveMetadataChanges);
+        inputMetadataRating.addEventListener('blur', saveMetadataChanges);
+        inputMetadataDifficulty.addEventListener('blur', saveMetadataChanges);
+        inputMetadataTime.addEventListener('blur', saveMetadataChanges);
+        inputMetadataKey.addEventListener('blur', saveMetadataChanges);
+        inputMetadataDateCreated.addEventListener('blur', saveMetadataChanges);
+        inputMetadataLastPlayed.addEventListener('blur', saveMetadataChanges);
 
         // Tab switching listeners
         libraryTabButton.addEventListener('click', () => switchView('library'));
@@ -1371,10 +1525,17 @@
         });
 
         // Initial app setup
-        // Load library data first, then switch view
-        fetchLibraryData().then(() => {
-            saveCurrentPathToHistory();
-            switchView('library');
+        // Load library data first, then switch view based on localStorage flag
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchLibraryData(); // Ensure libraryData is loaded first
+
+            const activeTabPreference = localStorage.getItem('maestroScoreActiveTab');
+            if (activeTabPreference === 'playlists') {
+                switchView('playlists');
+                localStorage.removeItem('maestroScoreActiveTab'); // Clear the flag
+            } else {
+                switchView('library'); // Default to library view
+            }
         });
     </script>
 </body>

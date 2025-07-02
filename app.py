@@ -67,7 +67,7 @@ def scan_pdfs_and_populate_db():
                    (1, "Root", "folder", None, None, datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'), None))
     root_db_id = 1 # The ID for the Root folder is always 1
 
-    # Recursive function to scan directories and insert files/folders into the database
+    # Recursive function to build the nested structure
     def insert_scanned_item(abs_path, relative_path, parent_db_id):
         item_name = os.path.basename(abs_path)
         item_type = "folder" if os.path.isdir(abs_path) else "pdf"
@@ -243,8 +243,8 @@ def get_library():
     db = get_db()
     cursor = db.cursor()
 
-    # Fetch all library items
-    cursor.execute("SELECT id, name, type, parent_id, pdf_url, date_created, date_last_played FROM LibraryItem")
+    # Fetch all library items, aliasing pdf_url as file_path for frontend compatibility
+    cursor.execute("SELECT id, name, type, parent_id, pdf_url AS file_path, date_created, date_last_played FROM LibraryItem")
     items_flat = [dict(row) for row in cursor.fetchall()]
 
     # Find the conceptual "Root" folder ID
@@ -304,7 +304,8 @@ def get_library_item(item_id):
     """
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT id, name, type, pdf_url, date_created, date_last_played FROM LibraryItem WHERE id = ?", (item_id,))
+    # Alias pdf_url as file_path to match frontend expectation
+    cursor.execute("SELECT id, name, type, pdf_url AS file_path, date_created, date_last_played FROM LibraryItem WHERE id = ?", (item_id,))
     item = cursor.fetchone()
     if item:
         return jsonify(dict(item)), 200
@@ -497,9 +498,10 @@ def get_single_playlist(playlist_id):
         return jsonify({"error": "Playlist not found"}), 404
 
     # Fetch songs for the playlist, joining with LibraryItem to get song details
+    # Alias li.pdf_url as file_path to match frontend expectation
     cursor.execute("""
         SELECT
-            li.id, li.name, li.type, li.pdf_url, li.date_created, li.date_last_played,
+            li.id, li.name, li.type, li.pdf_url AS file_path, li.date_created, li.date_last_played,
             ps.order_index
         FROM PlaylistSong ps
         JOIN LibraryItem li ON ps.library_item_id = li.id
@@ -546,8 +548,8 @@ def add_song_to_playlist(playlist_id):
         """, (playlist_id, library_item_id, next_order_index))
         db.commit()
 
-        # Fetch the added song's details to return
-        cursor.execute("SELECT id, name, type, pdf_url FROM LibraryItem WHERE id = ?", (library_item_id,))
+        # Fetch the added song's details to return, aliasing pdf_url as file_path
+        cursor.execute("SELECT id, name, type, pdf_url AS file_path FROM LibraryItem WHERE id = ?", (library_item_id,))
         added_song_info = cursor.fetchone()
         
         return jsonify({"message": "Song added to playlist", "song": dict(added_song_info)}), 201

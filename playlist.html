@@ -423,7 +423,8 @@
 
         // --- Event Listeners ---
         backButton.addEventListener('click', () => {
-            console.log("[playlist.html] Back button clicked. Navigating to library.html");
+            console.log("[playlist.html] Back button clicked. Setting localStorage to open Playlists tab and navigating to library.html");
+            localStorage.setItem('maestroScoreActiveTab', 'playlists'); // Set a flag to tell library.html to open playlists tab
             window.location.href = 'library.html'; // Go back to the main library/playlists page
         });
 
