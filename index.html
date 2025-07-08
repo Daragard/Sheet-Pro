@@ -79,6 +79,17 @@
             opacity: 1;
         }
 
+        /* Style for when an item is being dragged to show a 'grabbing' hand cursor */
+        body.dragging-active, body.dragging-active * {
+            cursor: grabbing !important;
+        }
+
+        /* When dragging, disable pointer events on the children of any potential drop target.
+           This ensures the dragover event fires on the LI itself, not its children. */
+        body.dragging-active li:not(.opacity-50) * {
+            pointer-events: none;
+        }
+
         /* --- Focus Mode Styles --- */
         body.focus-mode header,
         body.focus-mode #playlistContainer,
@@ -305,12 +316,15 @@
         let currentViewablePlaylistSongs = []; // Array of song objects for the current playlist
         let currentSongIndexInPlaylist = -1; // Index of the currently displayed song in currentViewablePlaylistSongs
         let currentPlayingPlaylistName = ''; // Name of the currently playing playlist
+        let currentPlaylistId = null; // ID of the currently active playlist
         let isPlaylistActive = false; // New flag to indicate if a playlist is being played
 
         let renderTaskLeft = null;
         let renderTaskRight = null;
         let currentPdfUrl = null; // Track the currently loaded PDF URL
         let wasFullscreenBeforeFocus = false; // Track fullscreen state before entering focus mode
+
+        let draggedItem = null; // Stores the currently dragged list item
 
 
         /**
@@ -894,7 +908,7 @@
                 // Show playlist if in landscape and it was previously open
                 if (isPlaylistOpen && !currentIsPortrait) {
                     playlistContainer.classList.remove('hidden');
-                    pageInfoContainer.classList.add('hidden'); // Hide page info container
+                    pageInfoContainer.classList.add('hidden'); // Hide page info when playlist is shown
                 } else { // Hide playlist if portrait or not open
                     playlistContainer.classList.add('hidden');
                     pageInfoContainer.classList.add('hidden'); // Also hide page info container
@@ -976,23 +990,70 @@
             }
         }
 
+                /**
+         * Reorders a song within the playlist.
+         * @param {string} draggedSongId - The ID of the song being dragged.
+         * @param {string} targetSongId - The ID of the song being dropped onto.
+         */
+        async function reorderSong(draggedSongId, targetSongId) {
+            const draggedIdNum = parseInt(draggedSongId, 10);
+            const draggedIndex = currentPlaylistSongs.findIndex(s => s.id === draggedIdNum);
+            const targetIndex = currentPlaylistSongs.findIndex(s => s.id === targetSongId);
+
+            if (draggedIndex === -1 || targetIndex === -1) {
+                console.error("Dragged or target song not found.");
+                return;
+            }
+
+            // Remove the dragged song from its original position
+            const [draggedSong] = currentPlaylistSongs.splice(draggedIndex, 1);
+
+            // Insert the dragged song at the new position
+            currentPlaylistSongs.splice(targetIndex, 0, draggedSong);
+
+            // Update the server with the new order
+            try {
+                const songIds = currentPlaylistSongs.map(s => s.id);
+                const response = await fetch(`/api/playlists/${currentPlaylistId}/reorder`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ new_order: songIds })
+                });
+
+                if (response.ok) {
+                    showMessage("Playlist reordered successfully.", 1500);
+                    renderPlaylistSongs(); // Re-render UI to reflect new order
+                } else {
+                    showMessage("Failed to reorder playlist.", 3000);
+                    console.error("Failed to reorder playlist:", response.status, response.statusText);
+                    fetchPlaylistSongs(); // Revert to server's state if reorder fails
+                }
+            } catch (error) {
+                showMessage("Error reordering playlist.", 3000);
+                console.error("Error reordering playlist:", error);
+                fetchPlaylistSongs(); // Revert to server's state if reorder fails
+            }
+        }
+
         /**
          * Renders the songs currently in `currentViewablePlaylistSongs` into the playlist panel UI.
          */
         function renderPlaylist() {
-            console.log("[Playlist Render] Rendering playlist items.");
             playlistItemsUl.innerHTML = '';
             playlistTitleElement.textContent = currentPlayingPlaylistName;
 
             if (currentViewablePlaylistSongs.length === 0) {
                 playlistItemsUl.innerHTML = '<li class="p-2 text-gray-500">No songs in playlist.</li>';
-                console.log("[Playlist Render] Playlist is empty.");
                 return;
             }
 
             currentViewablePlaylistSongs.forEach((song, index) => {
                 const li = document.createElement('li');
                 li.className = 'p-2 rounded-md hover:bg-gray-200 cursor-pointer text-gray-800';
+                // Add draggable attribute
+                li.draggable = true; 
                 if (index === currentSongIndexInPlaylist) {
                     li.classList.add('bg-indigo-200', 'font-semibold'); // Highlight current song
                 }
@@ -1002,6 +1063,62 @@
                 li.dataset.songId = song.id;
                 // Make sure to store the full path for PDF.js to use
                 li.dataset.filePath = song.file_path ? `/local_pdfs/${song.file_path}` : ''; // Ensure file_path exists
+
+                // Drag and Drop Event Listeners
+                li.addEventListener('dragstart', (e) => {
+                    draggedItem = li;
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', li.dataset.songId);
+                    // Add a class to the body to change cursor globally during drag
+                    document.body.classList.add('dragging-active');
+                    setTimeout(() => {
+                        li.classList.add('opacity-50'); // Hide the dragged item visually
+                    }, 0);
+                });
+
+                li.addEventListener('dragover', (e) => {
+                    e.preventDefault(); // Necessary to allow dropping
+                    if (draggedItem && draggedItem !== li) {
+                        const boundingBox = li.getBoundingClientRect();
+                        const offset = boundingBox.y + (boundingBox.height / 2);
+                        // Determine if dragging over top or bottom half of the target item
+                        if (e.clientY - offset > 0) {
+                            li.classList.remove('border-t-2', 'border-indigo-500');
+                            li.classList.add('border-b-2', 'border-indigo-500');
+                        } else {
+                            li.classList.remove('border-b-2', 'border-indigo-500');
+                            li.classList.add('border-t-2', 'border-indigo-500');
+                        }
+                    }
+                });
+
+                li.addEventListener('dragleave', () => {
+                    li.classList.remove('border-t-2', 'border-b-2', 'border-indigo-500');
+                });
+
+                li.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    li.classList.remove('border-t-2', 'border-b-2', 'border-indigo-500');
+
+                    if (draggedItem && draggedItem !== li) {
+                        const draggedSongId = draggedItem.dataset.songId;
+                        const targetSongId = li.dataset.songId;
+                        
+                        // Perform reordering logic
+                        reorderSong(draggedSongId, targetSongId);
+                    }
+                });
+
+                li.addEventListener('dragend', () => {
+                    draggedItem.classList.remove('opacity-50');
+                    draggedItem = null;
+                    // Remove the global cursor class
+                    document.body.classList.remove('dragging-active');
+                    // Clean up any lingering borders from dragover
+                    document.querySelectorAll('#playlistItems li').forEach(item => {
+                        item.classList.remove('border-t-2', 'border-b-2', 'border-indigo-500');
+                    });
+                });
 
                 li.addEventListener('click', () => {
                     console.log(`[Playlist Item Click] Clicked song: ${song.name}, ID: ${song.id}, FilePath: ${li.dataset.filePath}`);
@@ -1023,8 +1140,54 @@
                 });
                 playlistItemsUl.appendChild(li);
             });
-            console.log("[Playlist Render] Playlist items rendered.");
         }
+
+        // /**
+        //  * Reorders a song within the playlist, both locally and on the server.
+        //  * @param {string} draggedSongId - The ID of the song being dragged.
+        //  * @param {string} targetSongId - The ID of the song being dropped onto.
+        //  */
+        // async function reorderSong(draggedSongId, targetSongId) {
+        //     const draggedIdNum = parseInt(draggedSongId, 10);
+        //     const targetIdNum = parseInt(targetSongId, 10);
+
+        //     const draggedIndex = currentViewablePlaylistSongs.findIndex(s => s.id === draggedIdNum);
+        //     const targetIndex = currentViewablePlaylistSongs.findIndex(s => s.id === targetIdNum);
+
+        //     if (draggedIndex === -1 || targetIndex === -1) {
+        //         console.error("Dragged or target song not found in playlist array.");
+        //         return;
+        //     }
+
+        //     // Backup original order in case of server error
+        //     const originalOrder = [...currentViewablePlaylistSongs];
+
+        //     // Reorder locally for immediate UI update
+        //     const [draggedSong] = currentViewablePlaylistSongs.splice(draggedIndex, 1);
+        //     currentViewablePlaylistSongs.splice(targetIndex, 0, draggedSong);
+            
+        //     // Re-render the UI with the new optimistic order
+        //     renderPlaylist();
+
+        //     // Update the server with the new order
+        //     try {
+        //         const songIds = currentViewablePlaylistSongs.map(s => s.id);
+        //         const response = await fetch(`/api/playlists/${currentPlaylistId}/reorder`, {
+        //             method: 'POST',
+        //             headers: { 'Content-Type': 'application/json' },
+        //             body: JSON.stringify({ new_order: songIds })
+        //         });
+
+        //         if (!response.ok) throw new Error('Failed to save new order to server.');
+                
+        //         showMessage("Playlist reordered successfully.", 1500);
+        //     } catch (error) {
+        //         showMessage("Error saving new playlist order. Reverting.", 3000);
+        //         console.error("Error reordering playlist:", error);
+        //         currentViewablePlaylistSongs = originalOrder;
+        //         renderPlaylist();
+        //     }
+        // }
 
 
         // Automatic PDF load on app startup and render initial state of playlist
@@ -1035,6 +1198,7 @@
             // If it is a playlist
             if (playlistId) {
                 console.log(`[DOMContentLoaded] Found playlistId in URL: ${playlistId}. Loading playlist.`);
+                currentPlaylistId = playlistId; // Store the playlist ID
                 isPlaylistActive = true;
                 try {
                     const response = await fetch(`/api/playlists/${playlistId}`);
