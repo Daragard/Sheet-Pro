@@ -78,6 +78,43 @@
         #messageBox.active {
             opacity: 1;
         }
+
+        /* --- Focus Mode Styles --- */
+        body.focus-mode header,
+        body.focus-mode #playlistContainer,
+        body.focus-mode #pageInfoContainer {
+            display: none !important;
+        }
+
+        body.focus-mode #appLayout {
+            padding: 0;
+            gap: 0;
+        }
+
+        body.focus-mode #pdfMainContent > div {
+            border-radius: 0;
+            padding: 0;
+        }
+
+        #exitFocusModeButton {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 110; /* Higher than other UI elements */
+            background-color: rgba(31, 41, 55, 0.75); /* bg-gray-800 with opacity */
+            color: white;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 9999px; /* rounded-full */
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+            font-size: 1.25rem; /* Larger icon */
+        }
+        body.focus-mode #exitFocusModeButton {
+            display: flex;
+        }
     </style>
 </head>
 <body class="h-screen w-screen flex flex-col bg-gray-100 text-gray-800 overflow-hidden">
@@ -90,7 +127,7 @@
             <button id="libraryButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
                 <i class="fas fa-book mr-2"></i> Library
             </button>
-            <button id="setlistsButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+            <button id="playlistsButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
                 <i class="fas fa-list-alt mr-2"></i> Playlist
             </button>
         </div>
@@ -109,6 +146,9 @@
             <button id="toolsButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
                 <i class="fas fa-wrench mr-2"></i> Tools
             </button> -->
+            <button id="focusModeToggle" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                <i class="fas fa-expand mr-2"></i> Focus
+            </button>
             <button id="fullscreenToggle" class="flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
                 <i class="fas fa-expand-arrows-alt mr-2"></i> Fullscreen
             </button>
@@ -117,26 +157,26 @@
 
     <!-- Main content area that will handle layout changes based on orientation -->
     <div id="appLayout" class="flex-1 flex flex-col lg:flex-row p-4 gap-4">
-        <!-- Setlist Container - Controlled purely by JS now -->
-        <div id="setlistContainer" class="w-full lg:w-64 bg-white rounded-xl shadow-lg p-4 overflow-y-auto flex-shrink-0 z-10 transition-all duration-300 ease-in-out hidden">
+        <!-- Playlist Container - Controlled purely by JS now -->
+        <div id="playlistContainer" class="w-full lg:w-64 bg-white rounded-xl shadow-lg p-4 overflow-y-auto flex-shrink-0 z-10 transition-all duration-300 ease-in-out hidden">
             <!-- Buttons go here -->
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-gray-700" id="setlistTitle">Setlist</h2>
+                <h2 class="text-xl font-bold text-gray-700" id="playlistTitle">Playlist</h2>
                 <div>
-                    <button id="closeSetlistButton" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200">
+                    <button id="closePlaylistButton" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200">
                         <i class="fas fa-times"></i>
                     </button>
-                    <button id="moveSetlistButton" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200 ml-2">
+                    <button id="movePlaylistButton" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200 ml-2">
                         <i class="fas fa-exchange-alt"></i>
                     </button>
                 </div>
             </div>
-            <ul id="setlistItems" class="space-y-2">
-                <!-- Setlist items will be dynamically inserted here -->
+            <ul id="playlistItems" class="space-y-2">
+                <!-- Playlist items will be dynamically inserted here -->
             </ul>
         </div>
 
-        <!-- Page Info Container - Displays page numbers when setlist is not active -->
+        <!-- Page Info Container - Displays page numbers when playlist is not active -->
         <!-- This container will now always be hidden if not in playlist mode, as per user request -->
         <div id="pageInfoContainer" class="w-full lg:w-64 bg-white rounded-xl shadow-lg p-4 flex-shrink-0 z-10 transition-all duration-300 ease-in-out hidden flex-col items-center justify-center text-gray-700 text-2xl font-bold">
             <span id="currentPageOfTotal"></span>
@@ -208,6 +248,11 @@
         </div>
     </aside>
 
+    <!-- Exit Focus Mode Button -->
+    <button id="exitFocusModeButton">
+        <i class="fas fa-compress"></i>
+    </button>
+
     <script>
         // Set up the PDF.js worker source
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -217,17 +262,19 @@
         const messageBox = document.getElementById('messageBox');
         const fullscreenToggle = document.getElementById('fullscreenToggle');
         const libraryButton = document.getElementById('libraryButton');
-        const setlistsButton = document.getElementById('setlistsButton');
+        const focusModeToggle = document.getElementById('focusModeToggle');
+        const exitFocusModeButton = document.getElementById('exitFocusModeButton');
+        const playlistsButton = document.getElementById('playlistsButton');
         const libraryAside = document.getElementById('libraryAside');
         const closeAsideButton = document.getElementById('closeAsideButton');
         const loadingOverlay = document.getElementById('loadingOverlay');
         const pdfViewerContainer = document.getElementById('pdfViewerContainer');
-        const setlistContainer = document.getElementById('setlistContainer');
-        const closeSetlistButton = document.getElementById('closeSetlistButton');
-        const moveSetlistButton = document.getElementById('moveSetlistButton');
+        const playlistContainer = document.getElementById('playlistContainer');
+        const closePlaylistButton = document.getElementById('closePlaylistButton');
+        const movePlaylistButton = document.getElementById('movePlaylistButton');
         const appLayout = document.getElementById('appLayout');
-        const setlistTitleElement = document.getElementById('setlistTitle'); // Still used for the main title
-        const setlistItemsUl = document.getElementById('setlistItems');
+        const playlistTitleElement = document.getElementById('playlistTitle'); // Still used for the main title
+        const playlistItemsUl = document.getElementById('playlistItems');
 
         // New elements for page number display
         const pageInfoContainer = document.getElementById('pageInfoContainer');
@@ -252,17 +299,18 @@
 
         let pdfDoc = null;
         let currentPageNum = 1;
-        let isSetlistReversed = false;
+        let isPlaylistReversed = false;
         let previousOrientationIsPortrait = window.innerHeight > window.innerWidth;
-        let isSetlistOpen; // Initialized in initializeSetlist
-        let currentViewableSetlistSongs = []; // Array of song objects for the current playlist
-        let currentSongIndexInPlaylist = -1; // Index of the currently displayed song in currentViewableSetlistSongs
+        let isPlaylistOpen; // Initialized in initializePlaylist
+        let currentViewablePlaylistSongs = []; // Array of song objects for the current playlist
+        let currentSongIndexInPlaylist = -1; // Index of the currently displayed song in currentViewablePlaylistSongs
         let currentPlayingPlaylistName = ''; // Name of the currently playing playlist
         let isPlaylistActive = false; // New flag to indicate if a playlist is being played
 
         let renderTaskLeft = null;
         let renderTaskRight = null;
         let currentPdfUrl = null; // Track the currently loaded PDF URL
+        let wasFullscreenBeforeFocus = false; // Track fullscreen state before entering focus mode
 
 
         /**
@@ -402,7 +450,7 @@
         async function renderPdfPages() {
             if (!pdfDoc) {
                 // If no PDF is loaded, ensure both containers are hidden and page info is cleared
-                setlistContainer.classList.add('hidden');
+                playlistContainer.classList.add('hidden');
                 pageInfoContainer.classList.add('hidden');
                 currentPageOfTotalSpan.textContent = '';
                 return;
@@ -435,12 +483,12 @@
             currentPageNum = Math.max(1, Math.min(targetFirstVisiblePage, pdfDoc.numPages - numPagesToDisplay + 1));
             previousOrientationIsPortrait = currentIsPortrait;
 
-            // Handle setlist and pageInfoContainer visibility based on orientation and isPlaylistActive state
-            if (!currentIsPortrait && isPlaylistActive) { // Landscape and playlist active
-                setlistContainer.classList.remove('hidden');
-                pageInfoContainer.classList.add('hidden'); // Hide page info when setlist is shown
-            } else { // Portrait OR not in playlist mode (single song)
-                setlistContainer.classList.add('hidden');
+            // Handle playlist and pageInfoContainer visibility based on orientation and isPlaylistActive state
+            if (!currentIsPortrait && isPlaylistActive && isPlaylistOpen) { // Landscape, playlist active, and user wants it open
+                playlistContainer.classList.remove('hidden');
+                pageInfoContainer.classList.add('hidden'); // Hide page info when playlist is shown
+            } else { // Portrait OR not in playlist mode OR user closed it
+                playlistContainer.classList.add('hidden');
                 pageInfoContainer.classList.add('hidden'); // Always hide both if not in playlist mode or if in portrait
             }
 
@@ -501,88 +549,110 @@
         }
 
         /**
-         * Toggles fullscreen mode for the document.
+         * Checks if the document is currently in fullscreen mode.
+         * @returns {boolean} True if in fullscreen, false otherwise.
          */
-        function toggleFullscreen() {
-            // Check if libraryAside is open, and if so, prevent fullscreen until it's closed
+        function isFullscreen() {
+            return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+        }
+
+        /**
+         * Enters fullscreen mode.
+         */
+        function enterFullscreen() {
             if (libraryAside.classList.contains('translate-x-0')) {
                 showMessage("Please close the Library panel before entering fullscreen mode.", 3000);
                 return;
             }
-
-            if (!document.fullscreenElement &&
-                !document.webkitFullscreenElement &&
-                !document.mozFullScreenElement &&
-                !document.msFullscreenElement) {
-                if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen().catch(err => {
-                        showMessage(`Error entering fullscreen: ${err.message}`, 5000);
-                        console.error("Error attempting to enable full-screen mode:", err);
-                    });
-                } else if (document.documentElement.webkitRequestFullscreen) {
-                    document.documentElement.webkitRequestFullscreen().catch(err => {
-                        showMessage(`Error entering fullscreen: ${err.message}`, 5000);
-                        console.error("Error attempting to enable full-screen mode (webkit):", err);
-                    });
-                } else if (document.documentElement.msRequestFullscreen) {
-                    document.documentElement.msRequestFullscreen().catch(err => {
-                        showMessage(`Error entering fullscreen: ${err.message}`, 5000);
-                        console.error("Error attempting to enable full-screen mode (ms):", err);
-                    });
-                } else {
-                    showMessage("Fullscreen mode is not supported by your browser.", 5000);
-                }
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(err => showMessage(`Error entering fullscreen: ${err.message}`, 5000));
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                document.documentElement.webkitRequestFullscreen().catch(err => showMessage(`Error entering fullscreen: ${err.message}`, 5000));
+            } else if (document.documentElement.msRequestFullscreen) {
+                document.documentElement.msRequestFullscreen().catch(err => showMessage(`Error entering fullscreen: ${err.message}`, 5000));
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) {
-                    document.msExitFullscreen();
-                }
+                showMessage("Fullscreen mode is not supported by your browser.", 5000);
+            }
+        }
+
+        /**
+         * Exits fullscreen mode.
+         */
+        function exitFullscreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        }
+
+        /**
+         * Toggles fullscreen mode for the document.
+         */
+        function toggleFullscreen() {
+            if (!isFullscreen()) {
+                enterFullscreen();
+            } else {
+                exitFullscreen();
             }
         }
 
         // Add event listener to the fullscreen toggle button
         fullscreenToggle.addEventListener('click', toggleFullscreen);
 
-        // Event listeners for fullscreen changes to re-render PDF pages
-        document.addEventListener('fullscreenchange', () => {
-            if (document.fullscreenElement) {
-                showMessage("Entered fullscreen mode!");
+        /**
+         * Toggles focus mode, hiding UI elements to focus on the PDF.
+         */
+        function toggleFocusMode() {
+            const isEnteringFocusMode = !body.classList.contains('focus-mode');
+            let fullscreenActionTaken = false;
+
+            if (isEnteringFocusMode) {
+                // Entering focus mode
+                wasFullscreenBeforeFocus = isFullscreen();
+                if (!wasFullscreenBeforeFocus) {
+                    enterFullscreen();
+                    fullscreenActionTaken = true;
+                }
+                body.classList.add('focus-mode');
             } else {
-                showMessage("Exited fullscreen mode.");
+                // Exiting focus mode
+                body.classList.remove('focus-mode');
+                if (!wasFullscreenBeforeFocus && isFullscreen()) {
+                    exitFullscreen();
+                    fullscreenActionTaken = true;
+                }
             }
+
+            // If no fullscreen action was taken, we must manually trigger a re-render.
+            // The 'fullscreenchange' event handler will do it otherwise.
+            if (!fullscreenActionTaken) {
+                setTimeout(() => { if (pdfDoc) renderPdfPages(); }, 150);
+            }
+        }
+        // Add event listeners for both entering and exiting focus mode
+        focusModeToggle.addEventListener('click', toggleFocusMode);
+        exitFocusModeButton.addEventListener('click', toggleFocusMode);
+
+        /**
+         * Handles changes in fullscreen state by re-rendering the PDF.
+         * A delay is necessary to allow the browser to reflow the layout.
+         */
+        function handleFullscreenChange() {
+            // A small delay is needed to allow the browser to finish its layout reflow.
+            // 50ms can be too short, leading to incorrect size calculations.
             setTimeout(() => {
                 if (pdfDoc) {
                     renderPdfPages();
                 }
-            }, 50);
-        });
-        document.addEventListener('webkitfullscreenchange', () => {
-            if (document.webkitFullscreenElement) {
-                showMessage("Entered fullscreen mode!");
-            } else {
-                showMessage("Exited fullscreen mode.");
-            }
-            setTimeout(() => {
-                if (pdfDoc) {
-                    renderPdfPages();
-                }
-            }, 50);
-        });
-        document.addEventListener('msfullscreenchange', () => {
-            if (document.msFullscreenElement) {
-                showMessage("Entered fullscreen mode!");
-            } else {
-                showMessage("Exited fullscreen mode.");
-            }
-            setTimeout(() => {
-                if (pdfDoc) {
-                    renderPdfPages();
-                }
-            }, 50);
-        });
+            }, 150);
+        }
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('msfullscreenchange', handleFullscreenChange);
 
         /**
          * Disables/enables buttons that are not part of the library aside.
@@ -647,22 +717,23 @@
             }
         });
 
-        setlistsButton.addEventListener('click', () => {
-            isSetlistOpen = !isSetlistOpen;
+        playlistsButton.addEventListener('click', () => {
+            isPlaylistOpen = !isPlaylistOpen;
             if (pdfDoc) {
-                renderPdfPages(); // Re-render to show/hide setlist based on new state
+                renderPdfPages(); // Re-render to show/hide playlist based on new state
             }
         });
 
-        closeSetlistButton.addEventListener('click', () => {
-            setlistContainer.classList.add('hidden');
-            isSetlistOpen = false;
+        closePlaylistButton.addEventListener('click', () => {
+            console.log("hiding panel");
+            playlistContainer.classList.add('hidden');
+            isPlaylistOpen = false;
             if (pdfDoc) {
                 renderPdfPages();
             }
         });
 
-        moveSetlistButton.addEventListener('click', () => {
+        movePlaylistButton.addEventListener('click', () => {
             const currentIsPortrait = window.innerHeight > window.innerWidth;
 
             if (currentIsPortrait) {
@@ -670,7 +741,7 @@
             } else {
                 appLayout.classList.toggle('lg:flex-row-reverse');
             }
-            isSetlistReversed = !isSetlistReversed;
+            isPlaylistReversed = !isPlaylistReversed;
         });
 
         leftNavOverlay.addEventListener('click', async () => {
@@ -681,7 +752,7 @@
             console.log(`[LeftNav] Clicked. Current state:
                 isPlaylistActive: ${isPlaylistActive}
                 currentSongIndexInPlaylist: ${currentSongIndexInPlaylist}
-                currentViewableSetlistSongs.length: ${currentViewableSetlistSongs.length}
+                currentViewablePlaylistSongs.length: ${currentViewablePlaylistSongs.length}
                 currentPageNum: ${currentPageNum}
                 pdfDoc.numPages: ${pdfDoc.numPages}`);
 
@@ -702,12 +773,12 @@
             } else if (isPlaylistActive && currentSongIndexInPlaylist > 0) {
                 // If on the first page AND a playlist is active AND there's a previous song
                 currentSongIndexInPlaylist--;
-                const prevSong = currentViewableSetlistSongs[currentSongIndexInPlaylist];
+                const prevSong = currentViewablePlaylistSongs[currentSongIndexInPlaylist];
                 if (prevSong && prevSong.file_path) {
                     showMessage(`Playing previous song: ${prevSong.name}`, 2000);
                     // No need to update last played date for previous song
                     await loadPdf(`/local_pdfs/${prevSong.file_path}`);
-                    renderSetlist(); // Re-render setlist to highlight current song
+                    renderPlaylist(); // Re-render playlist to highlight current song
                 } else {
                     showMessage(`Could not load previous song "${prevSong.name}". File path missing.`, 3000);
                     console.error("Previous song in playlist missing file_path or invalid:", prevSong);
@@ -725,7 +796,7 @@
             console.log(`[RightNav] Clicked. Current state:
                 isPlaylistActive: ${isPlaylistActive}
                 currentSongIndexInPlaylist: ${currentSongIndexInPlaylist}
-                currentViewableSetlistSongs.length: ${currentViewableSetlistSongs.length}
+                currentViewablePlaylistSongs.length: ${currentViewablePlaylistSongs.length}
                 currentPageNum: ${currentPageNum}
                 pdfDoc.numPages: ${pdfDoc.numPages}`);
 
@@ -746,10 +817,10 @@
                 currentPageNum = Math.min(currentPageNum, pdfDoc.numPages - (step - 1));
                 console.log(`[RightNav] Advancing page. New currentPageNum: ${currentPageNum}`);
                 await renderPdfPages(); // Await the rendering
-            } else if (isPlaylistActive && currentSongIndexInPlaylist !== -1 && currentSongIndexInPlaylist < currentViewableSetlistSongs.length - 1) {
+            } else if (isPlaylistActive && currentSongIndexInPlaylist !== -1 && currentSongIndexInPlaylist < currentViewablePlaylistSongs.length - 1) {
                 // If on the last page of current PDF AND a playlist is active AND there's a next song
                 currentSongIndexInPlaylist++;
-                const nextSong = currentViewableSetlistSongs[currentSongIndexInPlaylist];
+                const nextSong = currentViewablePlaylistSongs[currentSongIndexInPlaylist];
                 if (nextSong && nextSong.file_path) {
                     showMessage(`Playing next song: ${nextSong.name}`, 2000);
                     // Update the last played date for the *new* song
@@ -759,7 +830,7 @@
                         .catch(error => console.error("Error updating play date for next song:", error));
 
                     await loadPdf(`/local_pdfs/${nextSong.file_path}`);
-                    renderSetlist(); // Re-render setlist to highlight current song
+                    renderPlaylist(); // Re-render playlist to highlight current song
                 } else {
                     showMessage(`Could not load next song "${nextSong.name}". File path missing.`, 3000);
                     console.error("Next song in playlist missing file_path or invalid:", nextSong);
@@ -775,7 +846,7 @@
                 renderPdfPages();
             }
             const currentIsPortrait = window.innerHeight > window.innerWidth;
-            if (isSetlistReversed) {
+            if (isPlaylistReversed) {
                 if (currentIsPortrait) {
                     appLayout.classList.add('flex-col-reverse');
                     appLayout.classList.remove('lg:flex-row-reverse');
@@ -790,26 +861,26 @@
         });
 
         /**
-         * Initializes the setlist panel by fetching song details from localStorage
-         * and populating the setlist UI.
+         * Initializes the playlist panel by fetching song details from localStorage
+         * and populating the playlist UI.
          */
-        async function initializeSetlist() {
-            console.log("[Setlist Init] Initializing setlist.");
+        async function initializePlaylist() {
+            console.log("[Playlist Init] Initializing playlist.");
             const playlistSongsQueueJSON = localStorage.getItem('playlistSongsQueue');
             currentPlayingPlaylistName = localStorage.getItem('currentPlayingPlaylistName') || 'Current Playlist';
             
             // Determine if a playlist is active based on the presence of playlistSongsQueue
             isPlaylistActive = !!playlistSongsQueueJSON;
 
-            const storedSetlistOpen = localStorage.getItem('isSetlistOpen');
-            // isSetlistOpen should only be true if a playlist is active AND it was previously open
-            isSetlistOpen = (storedSetlistOpen === 'true' && isPlaylistActive); 
+            const storedPlaylistOpen = localStorage.getItem('isPlaylistOpen');
+            // isPlaylistOpen should only be true if a playlist is active AND it was previously open
+            isPlaylistOpen = (storedPlaylistOpen === 'true' && isPlaylistActive); 
 
-            const storedSetlistReversed = localStorage.getItem('isSetlistReversed');
-            isSetlistReversed = (storedSetlistReversed === 'true');
+            const storedPlaylistReversed = localStorage.getItem('isPlaylistReversed');
+            isPlaylistReversed = (storedPlaylistReversed === 'true');
 
             const currentIsPortrait = window.innerHeight > window.innerWidth;
-            if (isSetlistReversed) {
+            if (isPlaylistReversed) {
                 if (currentIsPortrait) {
                     appLayout.classList.add('flex-col-reverse');
                 } else {
@@ -818,14 +889,14 @@
             }
 
             if (isPlaylistActive) {
-                console.log("[Setlist Init] playlistSongsQueue found in localStorage. Setting isPlaylistActive to true.");
+                console.log("[Playlist Init] playlistSongsQueue found in localStorage. Setting isPlaylistActive to true.");
                 
-                // Show setlist if in landscape and it was previously open
-                if (isSetlistOpen && !currentIsPortrait) {
-                    setlistContainer.classList.remove('hidden');
+                // Show playlist if in landscape and it was previously open
+                if (isPlaylistOpen && !currentIsPortrait) {
+                    playlistContainer.classList.remove('hidden');
                     pageInfoContainer.classList.add('hidden'); // Hide page info container
-                } else { // Hide setlist if portrait or not open
-                    setlistContainer.classList.add('hidden');
+                } else { // Hide playlist if portrait or not open
+                    playlistContainer.classList.add('hidden');
                     pageInfoContainer.classList.add('hidden'); // Also hide page info container
                 }
                 
@@ -833,30 +904,30 @@
                 const fetchedSongs = [];
 
                 for (const songId of songIds) {
-                    console.log(`[Setlist Init] Fetching details for song ID: ${songId}`);
+                    console.log(`[Playlist Init] Fetching details for song ID: ${songId}`);
                     try {
                         const response = await fetch(`/api/library/${songId}`);
                         if (response.ok) {
                             const songDetails = await response.json();
                             fetchedSongs.push(songDetails);
-                            console.log(`[Setlist Init] Fetched song details for ID ${songId}: Name: ${songDetails.name}, File Path: ${songDetails.file_path}`); // Added file_path to log
+                            console.log(`[Playlist Init] Fetched song details for ID ${songId}: Name: ${songDetails.name}, File Path: ${songDetails.file_path}`); // Added file_path to log
                         } else {
-                            console.warn(`[Setlist Init] Failed to fetch details for song ID ${songId}. Status: ${response.status}`);
+                            console.warn(`[Playlist Init] Failed to fetch details for song ID ${songId}. Status: ${response.status}`);
                             fetchedSongs.push({ id: songId, name: `Unknown Song ${songId}`, title: `Unknown Song ${songId}`, file_path: null }); // Ensure file_path is explicitly null
                         }
                     } catch (error) {
-                        console.error(`[Setlist Init] Error fetching song details for ID ${songId}:`, error);
+                        console.error(`[Playlist Init] Error fetching song details for ID ${songId}:`, error);
                         fetchedSongs.push({ id: songId, name: `Error Loading Song ${songId}`, title: `Error Loading Song ${songId}`, file_path: null }); // Ensure file_path is explicitly null
                     }
                 }
-                currentViewableSetlistSongs = fetchedSongs;
-                renderSetlist();
+                currentViewablePlaylistSongs = fetchedSongs;
+                renderPlaylist();
 
                 // Determine the initial song to load if a playlist is active
                 const songToPlayFromPlaylistId = localStorage.getItem('songToPlayFromPlaylistId');
                 if (songToPlayFromPlaylistId) {
                     // Find the index of the specific song requested
-                    currentSongIndexInPlaylist = currentViewableSetlistSongs.findIndex(song => song.id == songToPlayFromPlaylistId);
+                    currentSongIndexInPlaylist = currentViewablePlaylistSongs.findIndex(song => song.id == songToPlayFromPlaylistId);
                     localStorage.removeItem('songToPlayFromPlaylistId'); // Clear the flag
                 } else {
                     // If no specific song was requested, default to the first song in the playlist
@@ -864,16 +935,16 @@
                 }
 
                 // Load the determined initial song from the playlist
-                console.log(`[Setlist Init DEBUG] Before initial song load check: currentSongIndexInPlaylist=${currentSongIndexInPlaylist}, currentViewableSetlistSongs[currentSongIndexInPlaylist]=`, currentViewableSetlistSongs[currentSongIndexInPlaylist]);
-                if (currentSongIndexInPlaylist !== -1 && currentViewableSetlistSongs[currentSongIndexInPlaylist]) { // Removed .file_path check here, as loadPdf handles it
-                    const initialSong = currentViewableSetlistSongs[currentSongIndexInPlaylist];
-                    console.log(`[Setlist Init] Attempting to load initial song: ${initialSong.name}, file_path: ${initialSong.file_path}`); // Added log
+                console.log(`[Playlist Init DEBUG] Before initial song load check: currentSongIndexInPlaylist=${currentSongIndexInPlaylist}, currentViewablePlaylistSongs[currentSongIndexInPlaylist]=`, currentViewablePlaylistSongs[currentSongIndexInPlaylist]);
+                if (currentSongIndexInPlaylist !== -1 && currentViewablePlaylistSongs[currentSongIndexInPlaylist]) { // Removed .file_path check here, as loadPdf handles it
+                    const initialSong = currentViewablePlaylistSongs[currentSongIndexInPlaylist];
+                    console.log(`[Playlist Init] Attempting to load initial song: ${initialSong.name}, file_path: ${initialSong.file_path}`); // Added log
                     if (initialSong.file_path) { // Perform file_path check before loading
                         await loadPdf(`/local_pdfs/${initialSong.file_path}`);
-                        renderSetlist(); // Re-render to highlight the initially loaded song
+                        renderPlaylist(); // Re-render to highlight the initially loaded song
                     } else {
                         showMessage(`Could not load the first song in the playlist ("${initialSong.name}"). File path missing.`, 5000);
-                        console.error("[Setlist Init] Initial playlist song missing file_path:", initialSong);
+                        console.error("[Playlist Init] Initial playlist song missing file_path:", initialSong);
                         pdfDoc = null; // Ensure pdfDoc is null
                         pdfContextLeft.clearRect(0, 0, pdfCanvasLeft.width, pdfCanvasLeft.height);
                         pdfContextRight.clearRect(0, 0, pdfCanvasRight.width, pdfCanvasRight.height);
@@ -881,7 +952,7 @@
                     }
                 } else {
                     showMessage("Could not load the first song in the playlist. Playlist is empty or song index is invalid.", 5000);
-                    console.error("[Setlist Init] Initial playlist song missing or invalid index.");
+                    console.error("[Playlist Init] Initial playlist song missing or invalid index.");
                     // If the first song fails, do NOT load a default PDF. Keep it blank or show error.
                     pdfDoc = null; // Ensure pdfDoc is null
                     pdfContextLeft.clearRect(0, 0, pdfCanvasLeft.width, pdfCanvasLeft.height);
@@ -890,36 +961,36 @@
                 }
 
             } else {
-                console.log("[Setlist Init] No playlistSongsQueue found. Hiding setlist and setting isPlaylistActive to false.");
-                setlistContainer.classList.add('hidden');
-                isSetlistOpen = false;
-                localStorage.setItem('isSetlistOpen', isSetlistOpen);
+                console.log("[Playlist Init] No playlistSongsQueue found. Hiding playlist and setting isPlaylistActive to false.");
+                playlistContainer.classList.add('hidden');
+                isPlaylistOpen = false;
+                localStorage.setItem('isPlaylistOpen', isPlaylistOpen);
                 // If no playlist is active, ensure currentSongIndexInPlaylist is reset
                 currentSongIndexInPlaylist = -1; 
                 // Always hide page info container if not in playlist mode
                 pageInfoContainer.classList.add('hidden'); 
             }
-            console.log("[Setlist Init] Setlist initialization complete. Final isSetlistOpen:", isSetlistOpen, "isPlaylistActive:", isPlaylistActive);
+            console.log("[Playlist Init] Playlist initialization complete. Final isPlaylistOpen:", isPlaylistOpen, "isPlaylistActive:", isPlaylistActive);
             if (pdfDoc) {
                 renderPdfPages();
             }
         }
 
         /**
-         * Renders the songs currently in `currentViewableSetlistSongs` into the setlist panel UI.
+         * Renders the songs currently in `currentViewablePlaylistSongs` into the playlist panel UI.
          */
-        function renderSetlist() {
-            console.log("[Setlist Render] Rendering setlist items.");
-            setlistItemsUl.innerHTML = '';
-            setlistTitleElement.textContent = currentPlayingPlaylistName;
+        function renderPlaylist() {
+            console.log("[Playlist Render] Rendering playlist items.");
+            playlistItemsUl.innerHTML = '';
+            playlistTitleElement.textContent = currentPlayingPlaylistName;
 
-            if (currentViewableSetlistSongs.length === 0) {
-                setlistItemsUl.innerHTML = '<li class="p-2 text-gray-500">No songs in playlist.</li>';
-                console.log("[Setlist Render] Setlist is empty.");
+            if (currentViewablePlaylistSongs.length === 0) {
+                playlistItemsUl.innerHTML = '<li class="p-2 text-gray-500">No songs in playlist.</li>';
+                console.log("[Playlist Render] Playlist is empty.");
                 return;
             }
 
-            currentViewableSetlistSongs.forEach((song, index) => {
+            currentViewablePlaylistSongs.forEach((song, index) => {
                 const li = document.createElement('li');
                 li.className = 'p-2 rounded-md hover:bg-gray-200 cursor-pointer text-gray-800';
                 if (index === currentSongIndexInPlaylist) {
@@ -933,84 +1004,102 @@
                 li.dataset.filePath = song.file_path ? `/local_pdfs/${song.file_path}` : ''; // Ensure file_path exists
 
                 li.addEventListener('click', () => {
-                    console.log(`[Setlist Item Click] Clicked song: ${song.name}, ID: ${song.id}, FilePath: ${li.dataset.filePath}`);
+                    console.log(`[Playlist Item Click] Clicked song: ${song.name}, ID: ${song.id}, FilePath: ${li.dataset.filePath}`);
                     if (li.dataset.filePath) { // Check if filePath is valid
                         currentSongIndexInPlaylist = index; // Update current song index
                         if (currentPdfUrl === li.dataset.filePath) { // Check if the same PDF is already loaded
                             currentPageNum = 1;
-                            console.log("[Setlist Item Click] PDF already loaded. Resetting to page 1.");
+                            console.log("[Playlist Item Click] PDF already loaded. Resetting to page 1.");
                             renderPdfPages();
                         } else {
-                            console.log("[Setlist Item Click] Loading new PDF.");
+                            console.log("[Playlist Item Click] Loading new PDF.");
                             loadPdf(li.dataset.filePath);
                         }
-                        renderSetlist(); // Re-render to update highlight
+                        renderPlaylist(); // Re-render to update highlight
                     } else {
                         showMessage(`PDF path not found for "${displayTitle}".`, 3000);
-                        console.error(`[Setlist Item Click] PDF path missing for song ID: ${song.id}`);
+                        console.error(`[Playlist Item Click] PDF path missing for song ID: ${song.id}`);
                     }
                 });
-                setlistItemsUl.appendChild(li);
+                playlistItemsUl.appendChild(li);
             });
-            console.log("[Setlist Render] Setlist items rendered.");
+            console.log("[Playlist Render] Playlist items rendered.");
         }
 
 
-        // Automatic PDF load on app startup and render initial state of setlist
+        // Automatic PDF load on app startup and render initial state of playlist
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log("[DOMContentLoaded] App starting up.");
-            const songToPlayFromPlaylistId = localStorage.getItem('songToPlayFromPlaylistId');
-            const playlistSongsQueueJSON = localStorage.getItem('playlistSongsQueue');
-            
-            // Determine if a playlist is active based on the presence of playlistSongsQueue
-            isPlaylistActive = !!playlistSongsQueueJSON;
+            const songId = new URLSearchParams(window.location.search).get('songId');
+            const playlistId = new URLSearchParams(window.location.search).get('playlistId');
 
-            // If a specific song ID is present, it means we navigated from library.html or playlist.html
-            // If it's from playlist.html, isPlaylistActive will already be true.
-            // If it's from library.html (single song), we explicitly set isPlaylistActive to false for this load.
-            if (songToPlayFromPlaylistId && !isPlaylistActive) {
-                console.log(`[DOMContentLoaded] Found songToPlayFromPlaylistId in localStorage: ${songToPlayFromPlaylistId}. Loading as individual song.`);
-                isPlaylistActive = false; // Ensure playlist mode is OFF for individual song loads
+            // If it is a playlist
+            if (playlistId) {
+                console.log(`[DOMContentLoaded] Found playlistId in URL: ${playlistId}. Loading playlist.`);
+                isPlaylistActive = true;
                 try {
-                    console.log(`[DOMContentLoaded] Fetching song details for ID: ${songToPlayFromPlaylistId}`);
-                    const response = await fetch(`/api/library/${songToPlayFromPlaylistId}`);
-                    if (response.ok) {
-                        const songDetails = await response.json();
-                        console.log(`[DOMContentLoaded] Song details fetched: Name: ${songDetails.name}, File Path: ${songDetails.file_path}`); // Added file_path to log
-                        if (songDetails && songDetails.file_path) {
-                            const localPdfUrl = `/local_pdfs/${songDetails.file_path}`;
+                    const response = await fetch(`/api/playlists/${playlistId}`);
+                    if (!response.ok) {
+                        throw new Error(`API call failed with status: ${response.status}`);
+                    }
+                    const playlistData = await response.json();
+                    
+                    currentPlayingPlaylistName = playlistData.name;
+                    currentViewablePlaylistSongs = playlistData.songs || [];
+                    
+                    if (currentViewablePlaylistSongs.length > 0) {
+                        currentSongIndexInPlaylist = 0; // Start at the first song
+                        const firstSong = currentViewablePlaylistSongs[0];
+
+                        if (firstSong && firstSong.file_path) {
+                            const localPdfUrl = `/local_pdfs/${firstSong.file_path}`;
                             await loadPdf(localPdfUrl);
+                            // Update last played date for the first song
+                            fetch(`/api/library/${firstSong.id}/play`, { method: 'POST' });
+                            renderPlaylist(); // Render the playlist UI
                         } else {
-                            console.error(`[DOMContentLoaded] Fetched song details for ID ${songToPlayFromPlaylistId} missing 'file_path':`, songDetails);
-                            showMessage(`Selected song details incomplete. Could not load PDF.`, 3000);
-                            pdfDoc = null; // Ensure pdfDoc is null
-                            pdfContextLeft.clearRect(0, 0, pdfCanvasLeft.width, pdfCanvasLeft.height);
-                            pdfContextRight.clearRect(0, 0, pdfCanvasRight.width, pdfCanvasRight.height);
-                            showLoading(false);
+                            throw new Error(`First song in playlist "${playlistData.name}" is missing a file path.`);
                         }
                     } else {
-                        console.error(`[DOMContentLoaded] API call failed for song ID ${songToPlayFromPlaylistId}. Status: ${response.status}`);
-                        showMessage(`Could not load song ID ${songToPlayFromPlaylistId}.`, 3000);
-                        pdfDoc = null; // Ensure pdfDoc is null
-                        pdfContextLeft.clearRect(0, 0, pdfCanvasLeft.width, pdfCanvasLeft.height);
-                        pdfContextRight.clearRect(0, 0, pdfCanvasRight.width, pdfCanvasRight.height);
-                        showLoading(false);
+                        throw new Error(`Playlist "${playlistData.name}" is empty.`);
                     }
                 } catch (error) {
-                    console.error("[DOMContentLoaded] Error during API call for song ID:", songToPlayFromPlaylistId, error);
-                    showMessage("Error loading selected song.", 3000);
+                    console.error("[DOMContentLoaded] Error loading playlist by ID:", error);
+                    showMessage(`Error loading playlist: ${error.message}`, 4000);
+                    // Clear the view if playlist loading fails
                     pdfDoc = null; // Ensure pdfDoc is null
                     pdfContextLeft.clearRect(0, 0, pdfCanvasLeft.width, pdfCanvasLeft.height);
                     pdfContextRight.clearRect(0, 0, pdfCanvasRight.width, pdfCanvasRight.height);
                     showLoading(false);
-                } finally {
-                    localStorage.removeItem('songToPlayFromPlaylistId'); // Clean up the localStorage flag
-                    console.log("[DOMContentLoaded] Cleaned up 'songToPlayFromPlaylistId' from localStorage.");
                 }
-            } else if (isPlaylistActive) {
-                // If a playlist is active (from previous session or navigation), initialize setlist
-                console.log("[DOMContentLoaded] Playlist active. Initializing setlist.");
-                await initializeSetlist();
+            } else if (songId) {
+                // Load the song pdf from the server
+                console.log(`[DOMContentLoaded] Found songId in URL: ${songId}. Loading as individual song.`);
+                isPlaylistActive = false; // Ensure playlist mode is OFF for individual song loads
+                playlistContainer.classList.add('hidden'); // Ensure playlist container is hidden
+                pageInfoContainer.classList.add('hidden'); // Ensure page info is hidden
+
+                try {
+                    console.log(`[DOMContentLoaded] Fetching song details for ID: ${songId}`);
+                    const response = await fetch(`/api/library/${songId}`);
+                    if (!response.ok) {
+                        throw new Error(`API call failed with status: ${response.status}`);
+                    }
+                    
+                    const songDetails = await response.json();
+                    console.log(`[DOMContentLoaded] Song details fetched: Name: ${songDetails.name}, File Path: ${songDetails.file_path}`);
+                    
+                    if (songDetails && songDetails.file_path) {
+                        const localPdfUrl = `/local_pdfs/${songDetails.file_path}`;
+                        await loadPdf(localPdfUrl);
+                        // Also update the last played date
+                        fetch(`/api/library/${songId}/play`, { method: 'POST' });
+                    } else {
+                        throw new Error(`Fetched song details for ID ${songId} are incomplete or missing 'file_path'.`);
+                    }
+                } catch (error) {
+                    console.error("[DOMContentLoaded] Error loading song by ID:", error);
+                    showMessage(`Error loading song: ${error.message}`, 4000);
+                }
             } else {
                 // No specific song or active playlist
                 console.log("[DOMContentLoaded] No specific song or active playlist. Displaying initial message.");
@@ -1019,6 +1108,11 @@
                 pdfContextLeft.clearRect(0, 0, pdfCanvasLeft.width, pdfCanvasLeft.height);
                 pdfContextRight.clearRect(0, 0, pdfCanvasRight.width, pdfCanvasRight.height);
                 showLoading(false);
+            }
+
+            // Hide the playlist button if we are not in an active playlist context.
+            if (!isPlaylistActive) {
+                playlistsButton.classList.add('hidden');
             }
 
             console.log("[DOMContentLoaded] App startup routine complete.");

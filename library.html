@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,24 +13,34 @@
         /* Apply the Inter font globally */
         body {
             font-family: 'Inter', sans-serif;
-            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
-            background-color: #f3f4f6; /* Light gray background */
-            color: #374151; /* Dark gray text */
+            -webkit-tap-highlight-color: transparent;
+            /* Remove tap highlight on mobile */
+            background-color: #f3f4f6;
+            /* Light gray background */
+            color: #374151;
+            /* Dark gray text */
         }
+
         /* Hide scrollbars for a cleaner app-like look */
         body::-webkit-scrollbar {
             display: none;
         }
+
         body {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
         }
+
         /* Styling for disabled buttons to indicate their state */
         .button-disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            pointer-events: none; /* Disable pointer events on disabled buttons */
+            pointer-events: none;
+            /* Disable pointer events on disabled buttons */
         }
+
         /* Style for library grid items */
         .library-grid-item {
             display: flex;
@@ -39,37 +50,50 @@
             text-align: center;
             padding: 1rem;
             border-radius: 0.5rem;
-            background-color: #ffffff; /* White background for items */
+            background-color: #ffffff;
+            /* White background for items */
             transition: background-color 0.2s ease-in-out;
             cursor: pointer;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            height: 150px; /* Fixed height for consistent grid */
-            width: 150px; /* Fixed width for consistent grid */
-            flex-shrink: 0; /* Prevent items from shrinking */
+            height: 150px;
+            /* Fixed height for consistent grid */
+            width: 150px;
+            /* Fixed width for consistent grid */
+            flex-shrink: 0;
+            /* Prevent items from shrinking */
         }
+
         .library-grid-item:hover {
             background-color: #e5e7eb;
         }
+
         .library-grid-item .icon {
             font-size: 3rem;
             margin-bottom: 0.5rem;
-            color: #6366f1; /* Indigo color for folder icons */
+            color: #6366f1;
+            /* Indigo color for folder icons */
         }
+
         .library-grid-item.pdf .icon {
-            color: #ef4444; /* Red for PDF icons */
+            color: #ef4444;
+            /* Red for PDF icons */
         }
+
         .library-grid-item .name {
             font-weight: 600;
             font-size: 0.9rem;
             color: #374151;
-            word-break: break-word; /* Ensure long names wrap */
+            word-break: break-word;
+            /* Ensure long names wrap */
             white-space: normal;
             display: -webkit-box;
-            -webkit-line-clamp: 2; /* Limit to 2 lines */
+            -webkit-line-clamp: 2;
+            /* Limit to 2 lines */
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
         /* Styles for the options dropdown */
         .options-dropdown {
             position: absolute;
@@ -83,17 +107,22 @@
             visibility: hidden;
             transform: translateY(10px);
             transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s;
-            display: none; /* Added for reliable hiding */
+            display: none;
+            /* Added for reliable hiding */
         }
+
         .options-dropdown.active {
             opacity: 1;
             visibility: visible;
             transform: translateY(0);
-            display: block; /* Added for reliable showing */
+            display: block;
+            /* Added for reliable showing */
         }
+
         /* Styles for buttons inside options dropdown */
         .options-dropdown button {
-            display: block; /* Ensure buttons take full width and are always visible */
+            display: block;
+            /* Ensure buttons take full width and are always visible */
             width: 100%;
             text-align: left;
             padding: 0.75rem 1rem;
@@ -103,69 +132,91 @@
             border: none;
             cursor: pointer;
             transition: background-color 0.2s ease-in-out;
-            border-radius: 0.25rem; /* Small rounded corners for individual items */
+            border-radius: 0.25rem;
+            /* Small rounded corners for individual items */
         }
+
         .options-dropdown button:hover {
             background-color: #f3f4f6;
         }
+
         .options-dropdown button.active {
-            color: #6366f1; /* Active color for selected sort option */
+            color: #6366f1;
+            /* Active color for selected sort option */
             font-weight: 600;
-            background-color: #e0e7ff; /* Lighter indigo background for active */
+            background-color: #e0e7ff;
+            /* Lighter indigo background for active */
         }
+
         /* Separator line style */
         .options-dropdown hr {
             margin: 0.5rem 0;
             border-color: #e5e7eb;
         }
+
         /* Styles for tabs */
         .tab-button {
             padding: 0.75rem 1.5rem;
             border-bottom: 2px solid transparent;
             font-weight: 500;
-            color: #9ca3af; /* Gray text for inactive tab */
+            color: #9ca3af;
+            /* Gray text for inactive tab */
             transition: all 0.2s ease-in-out;
         }
+
         .tab-button:hover {
-            color: #e5e7eb; /* Lighter gray on hover */
-            border-color: #6b7280; /* Darker gray border on hover */
+            color: #e5e7eb;
+            /* Lighter gray on hover */
+            border-color: #6b7280;
+            /* Darker gray border on hover */
         }
+
         .tab-button.active {
-            color: #ffffff; /* White text for active tab */
-            border-color: #818cf8; /* Indigo border for active tab */
+            color: #ffffff;
+            /* White text for active tab */
+            border-color: #818cf8;
+            /* Indigo border for active tab */
             font-weight: 600;
         }
+
         /* Style for playlist list items */
         .playlist-list-item {
             display: flex;
             align-items: center;
             padding: 1rem;
-            margin-bottom: 0.5rem; /* Added margin for spacing between items */
+            margin-bottom: 0.5rem;
+            /* Added margin for spacing between items */
             border-radius: 0.5rem;
             background-color: #ffffff;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             transition: background-color 0.2s ease-in-out;
             cursor: pointer;
         }
+
         .playlist-list-item:hover {
             background-color: #e5e7eb;
         }
+
         .playlist-list-item .icon {
             font-size: 2rem;
             margin-right: 1rem;
             color: #6366f1;
         }
+
         .playlist-list-item .name {
             font-weight: 600;
             font-size: 1.1rem;
             color: #374151;
-            flex-grow: 1; /* Allow name to take available space */
+            flex-grow: 1;
+            /* Allow name to take available space */
         }
+
         .playlist-list-item .song-count {
             font-size: 0.8rem;
             color: #6b7280;
             margin-left: auto;
         }
+
         /* Style for a custom message box */
         #messageBox {
             position: fixed;
@@ -181,6 +232,7 @@
             transition: opacity 0.3s ease-in-out;
             pointer-events: none;
         }
+
         #messageBox.active {
             opacity: 1;
         }
@@ -192,7 +244,8 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent black background */
+            background-color: rgba(0, 0, 0, 0.6);
+            /* Semi-transparent black background */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -201,6 +254,7 @@
             visibility: hidden;
             transition: opacity 0.3s ease-in-out, visibility 0.3s;
         }
+
         #songDetailsModal.active {
             opacity: 1;
             visibility: visible;
@@ -217,13 +271,14 @@
             flex-direction: column;
             overflow: hidden;
         }
-        
+
         #songDetailsModalHeader {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 1rem 1.5rem;
-            background-color: #6366f1; /* Indigo header */
+            background-color: #6366f1;
+            /* Indigo header */
             color: white;
             border-top-left-radius: 1rem;
             border-top-right-radius: 1rem;
@@ -231,13 +286,16 @@
 
         #songDetailsModalBody {
             display: flex;
-            flex: 1; /* Takes remaining height */
+            flex: 1;
+            /* Takes remaining height */
             overflow: hidden;
         }
 
         #songDetailsSidebar {
-            width: 200px; /* Fixed width for sidebar */
-            background-color: #f3f4f6; /* Light gray for sidebar */
+            width: 200px;
+            /* Fixed width for sidebar */
+            background-color: #f3f4f6;
+            /* Light gray for sidebar */
             padding: 1rem 0;
             display: flex;
             flex-direction: column;
@@ -259,26 +317,33 @@
 
         #songDetailsSidebar button:hover {
             background-color: #e0e7ff;
-            color: #4338ca; /* Darker indigo on hover */
+            color: #4338ca;
+            /* Darker indigo on hover */
         }
 
         #songDetailsSidebar button.active {
-            background-color: #cbd5e1; /* Even lighter indigo for active */
-            color: #1f2937; /* Darker text for active */
+            background-color: #cbd5e1;
+            /* Even lighter indigo for active */
+            color: #1f2937;
+            /* Darker text for active */
             font-weight: 600;
-            border-left: 4px solid #6366f1; /* Active indicator bar */
+            border-left: 4px solid #6366f1;
+            /* Active indicator bar */
         }
 
         #songDetailsContentArea {
-            flex: 1; /* Takes remaining width */
+            flex: 1;
+            /* Takes remaining width */
             padding: 1.5rem;
-            overflow-y: auto; /* Scroll for content if needed */
+            overflow-y: auto;
+            /* Scroll for content if needed */
         }
 
         /* Styles for metadata form/display */
         .metadata-item {
             margin-bottom: 1rem;
         }
+
         .metadata-item label {
             display: block;
             font-weight: 600;
@@ -286,24 +351,33 @@
             margin-bottom: 0.25rem;
             font-size: 0.9rem;
         }
-        .metadata-item p, .metadata-item input, .metadata-item textarea {
+
+        .metadata-item p,
+        .metadata-item input,
+        .metadata-item textarea {
             background-color: #f9fafb;
             border: 1px solid #e5e7eb;
             padding: 0.75rem 1rem;
             border-radius: 0.5rem;
             font-size: 1rem;
             color: #1f2937;
-            width: 100%; /* Make inputs take full width */
+            width: 100%;
+            /* Make inputs take full width */
         }
-        .metadata-item input:disabled, .metadata-item textarea:disabled {
-            background-color: #e5e7eb; /* Slightly darker background for disabled inputs */
+
+        .metadata-item input:disabled,
+        .metadata-item textarea:disabled {
+            background-color: #e5e7eb;
+            /* Slightly darker background for disabled inputs */
             cursor: default;
         }
+
         .metadata-actions {
             margin-top: 1.5rem;
             display: flex;
             gap: 1rem;
         }
+
         .metadata-actions button {
             padding: 0.75rem 1.5rem;
             border-radius: 0.5rem;
@@ -311,17 +385,21 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
+
         .metadata-actions button.primary {
             background-color: #6366f1;
             color: white;
         }
+
         .metadata-actions button.primary:hover {
             background-color: #4f46e5;
         }
+
         .metadata-actions button.secondary {
             background-color: #e5e7eb;
             color: #374151;
         }
+
         .metadata-actions button.secondary:hover {
             background-color: #d1d5db;
         }
@@ -330,11 +408,13 @@
         #modalPlaylistsList {
             margin-top: 1rem;
         }
+
         /* Adjusted style for items in songInPlaylistsList for better layout with remove button */
         #songInPlaylistsList .playlist-item-with-remove {
             display: flex;
             align-items: center;
-            justify-content: space-between; /* Space out name and button */
+            justify-content: space-between;
+            /* Space out name and button */
             padding: 0.75rem 1rem;
             margin-bottom: 0.5rem;
             background-color: #f9fafb;
@@ -343,16 +423,20 @@
             font-size: 0.9rem;
             color: #374151;
         }
+
         #songInPlaylistsList .playlist-item-with-remove button {
-            background-color: #ef4444; /* Red for remove */
+            background-color: #ef4444;
+            /* Red for remove */
             color: white;
             padding: 0.3rem 0.6rem;
             border-radius: 0.25rem;
             font-size: 0.8rem;
             transition: background-color 0.2s ease-in-out;
         }
+
         #songInPlaylistsList .playlist-item-with-remove button:hover {
-            background-color: #dc2626; /* Darker red on hover */
+            background-color: #dc2626;
+            /* Darker red on hover */
         }
 
 
@@ -362,12 +446,14 @@
             padding-top: 1.5rem;
             border-top: 1px solid #e5e7eb;
         }
+
         #addToPlaylistSection h3 {
             font-size: 1.1rem;
             font-weight: 600;
             margin-bottom: 1rem;
             color: #4b5563;
         }
+
         #addPlaylistsDropdown {
             max-height: 200px;
             overflow-y: auto;
@@ -375,6 +461,7 @@
             border-radius: 0.5rem;
             background-color: #fff;
         }
+
         #addPlaylistsDropdown button {
             display: block;
             width: 100%;
@@ -388,75 +475,119 @@
             transition: background-color 0.2s ease-in-out;
             border-radius: 0;
         }
+
         #addPlaylistsDropdown button:hover {
             background-color: #f3f4f6;
         }
+
+        /* --- Change Path Modal Styles --- */
+        #changePathModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s;
+        }
+
+        #changePathModal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #changePathModal code {
+            background-color: #f3f4f6;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            display: block;
+            margin-bottom: 1rem;
+            font-family: monospace;
+            color: #4b5563;
+        }
+
+        #changePathModal input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+        }
     </style>
 </head>
+
 <body class="h-screen w-screen flex flex-col p-4 gap-4">
 
     <!-- Main Library Content -->
     <div id="libraryMainContent" class="flex-1 flex flex-col p-4 bg-white rounded-xl shadow-lg h-full overflow-x-auto">
         <!-- Header for Library View -->
-        <header class="flex flex-col p-4 bg-gray-900 text-white shadow-lg rounded-t-lg">
-            <div class="flex items-center justify-between">
+        <header class="p-4 bg-gray-900 text-white shadow-lg rounded-t-lg">
+            <div class="grid grid-cols-3 items-center">
                 <!-- Left side: Navigation buttons -->
-                <div class="flex items-center space-x-2">
-                    <button id="homeButton" class="p-2 rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                <div id="navButtonContainer" class="flex items-center space-x-2 justify-start">
+                    <button id="homeButton"
+                        class="p-2 rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
                         <i class="fas fa-home text-lg"></i>
                     </button>
-                    <button id="backButton" class="p-2 rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                    <button id="backButton"
+                        class="p-2 rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
                         <i class="fas fa-arrow-left text-lg"></i>
                     </button>
-                    <button id="forwardButton" class="p-2 rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                    <button id="forwardButton"
+                        class="p-2 rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
                         <i class="fas fa-arrow-right text-lg"></i>
                     </button>
-                    <button id="upButton" class="p-2 rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                    <button id="upButton"
+                        class="p-2 rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
                         <i class="fas fa-level-up-alt text-lg"></i>
                     </button>
                 </div>
 
-                <!-- Center: Breadcrumbs -->
-                <nav class="text-base font-medium text-gray-400 px-4 flex-grow text-center">
-                    <ol id="breadcrumbsContainer" class="list-none p-0 inline-flex items-center justify-center space-x-1">
-                        <!-- Breadcrumbs will be dynamically inserted here -->
-                    </ol>
-                </nav>
+                <!-- Center: Tabs -->
+                <div class="flex justify-center">
+                    <button id="libraryTabButton" class="tab-button active justify-start">Library</button>
+                    <button id="playlistsTabButton" class="tab-button justify-end">Playlists</button>
+                </div>
 
                 <!-- Right side: Options button -->
-                <div class="flex items-center">
+                <div id="optionsButtonContainer" class="flex items-center justify-end">
                     <div class="relative">
-                        <button id="optionsButton" class="p-2 rounded-full hover:bg-gray-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                        <button id="optionsButton"
+                            class="p-2 rounded-full hover:bg-gray-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
                             <i class="fas fa-ellipsis-h text-lg"></i>
                         </button>
                         <!-- Options Dropdown Menu -->
                         <div id="optionsDropdown" class="options-dropdown top-full right-0">
                             <button id="alphabeticalSortButton" data-sort-order="alphabetical">Alphabetical</button>
                             <button id="dateCreatedSortButton" data-sort-order="dateCreated">Date Created</button>
-                            <button id="dateLastPlayedSortButton" data-sort-order="dateLastPlayed">Date Last Played</button>
+                            <button id="dateLastPlayedSortButton" data-sort-order="dateLastPlayed">Date Last
+                                Played</button>
                             <hr class="border-gray-200 my-1">
                             <button id="changeLibraryFolderButton">Change Library Folder</button>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Tabs -->
-            <div class="flex justify-center mt-4 border-b border-gray-700">
-                <button id="libraryTabButton" class="tab-button active">Library</button>
-                <button id="playlistsTabButton" class="tab-button">Playlists</button>
-            </div>
         </header>
 
         <!-- Main Content Area: Library View -->
         <div id="libraryView" class="flex-1 flex flex-col pt-4 h-full">
             <!-- Scan Library Section (hidden by default) -->
-            <div id="scanLibrarySection" class="flex flex-col items-center justify-center h-full text-center p-8 bg-gray-50 rounded-lg shadow-inner hidden">
+            <div id="scanLibrarySection"
+                class="flex flex-col items-center justify-center h-full text-center p-8 bg-gray-50 rounded-lg shadow-inner hidden">
                 <i class="fas fa-folder-open text-6xl text-gray-400 mb-4"></i>
                 <p id="emptyLibraryMessage" class="text-xl font-semibold text-gray-700 mb-4">Your library is empty.</p>
-                <p id="emptyLibraryHint" class="text-gray-600 mb-6">Click the button below to scan your configured PDF folder and populate your library, or change the folder location.</p>
-                <button id="actionButton" class="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg">
-                    <i class="fas fa-sync-alt mr-2" id="actionButtonIcon"></i> <span id="actionButtonText">Scan Library Folder</span>
+                <p id="emptyLibraryHint" class="text-gray-600 mb-6">Click the button below to scan your configured PDF
+                    folder and populate your library, or change the folder location.</p>
+                <button id="actionButton"
+                    class="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg">
+                    <i class="fas fa-sync-alt mr-2" id="actionButtonIcon"></i> <span id="actionButtonText">Scan Library
+                        Folder</span>
                 </button>
             </div>
 
@@ -472,7 +603,8 @@
             <div id="playlistsList" class="flex flex-col gap-2 overflow-y-auto pb-4 px-4">
                 <!-- Playlists will be dynamically inserted here -->
             </div>
-            <button id="createNewPlaylistButton" class="mt-4 mx-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <button id="createNewPlaylistButton"
+                class="mt-4 mx-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 <i class="fas fa-plus mr-2"></i>Create New Playlist
             </button>
         </div>
@@ -500,7 +632,7 @@
                         <div id="songInPlaylistsList" class="flex flex-col gap-2">
                             <p class="text-gray-600">Loading playlists...</p>
                         </div>
-                        
+
                         <div id="addToPlaylistSection">
                             <h3>Add to another Playlist</h3>
                             <div id="addPlaylistsDropdown">
@@ -544,20 +676,24 @@
                             <input type="text" id="inputMetadataDifficulty">
                         </div>
                         <div class="metadata-item">
-                            <label for="inputMetadataTime">Time Signature:</label>
-                            <input type="text" id="inputMetadataTime">
+                            <label for="inputMetadataPlaytime">Playtime:</label>
+                            <input type="text" id="inputMetadataPlaytime" placeholder="00:00">
                         </div>
                         <div class="metadata-item">
                             <label for="inputMetadataKey">Key:</label>
                             <input type="text" id="inputMetadataKey">
                         </div>
                         <div class="metadata-item">
+                            <label for="inputMetadataTime">Time Signature:</label>
+                            <input type="text" id="inputMetadataTime">
+                        </div>
+                        <div class="metadata-item">
                             <label for="inputMetadataDateCreated">Date Created:</label>
-                            <input type="text" id="inputMetadataDateCreated">
+                            <input type="text" id="inputMetadataDateCreated" disabled>
                         </div>
                         <div class="metadata-item">
                             <label for="inputMetadataLastPlayed">Last Played:</label>
-                            <input type="text" id="inputMetadataLastPlayed">
+                            <input type="text" id="inputMetadataLastPlayed" disabled>
                         </div>
                         <div class="metadata-actions">
                             <!-- Removed save, cancel, rename, and open in viewer buttons -->
@@ -568,8 +704,37 @@
         </div>
     </div>
 
+    <!-- Change Library Path Modal -->
+    <div id="changePathModal" class="hidden">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-lg flex flex-col">
+            <header class="flex items-center justify-between p-4 border-b border-gray-200">
+                <h2 class="text-xl font-bold text-gray-800">Change Library Folder</h2>
+                <button id="closeChangePathModalButton"
+                    class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </header>
+            <main class="p-6">
+                <p class="text-gray-600 mb-4">
+                    Please enter the full, absolute path to the folder on your computer where your sheet music PDFs are
+                    stored.
+                </p>
+                <p class="text-sm text-gray-500 mb-1">Example for Windows:</p>
+                <code>C:\Users\YourName\Documents\Sheet Music</code>
+                <p class="text-sm text-gray-500 mb-1">Example for macOS/Linux:</p>
+                <code>/home/yourname/Music/Scores</code>
+                <input type="text" id="newPathInput" placeholder="Enter full folder path here...">
+            </main>
+            <footer class="p-4 bg-gray-50 border-t border-gray-200 flex justify-end items-center gap-4">
+                <button id="cancelChangePathButton"
+                    class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                <button id="saveNewPathButton"
+                    class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save and Rescan</button>
+            </footer>
+        </div>
+    </div>
+
     <!-- Message box for user feedback -->
-    <div id="messageBox" class="fixed bottom-8 left-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 pointer-events: none; z-50">
+    <div id="messageBox"
+        class="fixed bottom-8 left-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 pointer-events: none; z-50">
     </div>
 
     <script>
@@ -577,21 +742,22 @@
         const messageBox = document.getElementById('messageBox');
         const libraryMainContent = document.getElementById('libraryMainContent');
         const libraryGrid = document.getElementById('libraryGrid');
-        const breadcrumbsContainer = document.getElementById('breadcrumbsContainer');
         const scanLibrarySection = document.getElementById('scanLibrarySection');
         const actionButton = document.getElementById('actionButton'); // Unified button
         const actionButtonIcon = document.getElementById('actionButtonIcon');
         const actionButtonText = document.getElementById('actionButtonText');
         const emptyLibraryMessage = document.getElementById('emptyLibraryMessage');
         const emptyLibraryHint = document.getElementById('emptyLibraryHint');
-        
+
         // Navigation buttons
         const homeButton = document.getElementById('homeButton');
         const backButton = document.getElementById('backButton');
         const forwardButton = document.getElementById('forwardButton');
         const upButton = document.getElementById('upButton');
         const optionsButton = document.getElementById('optionsButton');
+        const navButtonContainer = document.getElementById('navButtonContainer');
         const optionsDropdown = document.getElementById('optionsDropdown');
+        const optionsButtonContainer = document.getElementById('optionsButtonContainer');
 
         // Sorting buttons (inside the dropdown)
         const alphabeticalSortButton = document.getElementById('alphabeticalSortButton');
@@ -612,9 +778,9 @@
         const closeModalButton = document.getElementById('closeModalButton');
         const modalSongTitle = document.getElementById('modalSongTitle');
         const metadataTabButton = document.getElementById('metadataTabButton');
-        const playlistsTabButtonModal = document.getElementById('playlistsTabButtonModal'); 
+        const playlistsTabButtonModal = document.getElementById('playlistsTabButtonModal');
         const metadataContent = document.getElementById('metadataContent');
-        const playlistsContentModal = document.getElementById('playlistsContentModal'); 
+        const playlistsContentModal = document.getElementById('playlistsContentModal');
         // Renamed and Open in Viewer buttons are removed
         const songInPlaylistsList = document.getElementById('songInPlaylistsList');
         const addPlaylistsDropdown = document.getElementById('addPlaylistsDropdown');
@@ -628,10 +794,18 @@
         const inputMetadataLabel = document.getElementById('inputMetadataLabel');
         const inputMetadataRating = document.getElementById('inputMetadataRating');
         const inputMetadataDifficulty = document.getElementById('inputMetadataDifficulty');
-        const inputMetadataTime = document.getElementById('inputMetadataTime');
+        const inputMetadataPlaytime = document.getElementById('inputMetadataPlaytime');
         const inputMetadataKey = document.getElementById('inputMetadataKey');
-        const inputMetadataDateCreated = document.getElementById('inputMetadataDateCreated'); 
-        const inputMetadataLastPlayed = document.getElementById('inputMetadataLastPlayed'); 
+        const inputMetadataTime = document.getElementById('inputMetadataTime');
+        const inputMetadataDateCreated = document.getElementById('inputMetadataDateCreated');
+        const inputMetadataLastPlayed = document.getElementById('inputMetadataLastPlayed');
+
+        // Change Path Modal elements
+        const changePathModal = document.getElementById('changePathModal');
+        const closeChangePathModalButton = document.getElementById('closeChangePathModalButton');
+        const cancelChangePathButton = document.getElementById('cancelChangePathButton');
+        const saveNewPathButton = document.getElementById('saveNewPathButton');
+        const newPathInput = document.getElementById('newPathInput');
 
         // --- State Variables ---
         let currentLibraryPath = []; // Array of folder names representing the current path for Library view
@@ -720,46 +894,6 @@
         }
 
         /**
-         * Renders the breadcrumbs for the current library path.
-         */
-        function renderBreadcrumbs() {
-            breadcrumbsContainer.innerHTML = ''; // Clear existing breadcrumbs
-
-            // Add "Home" breadcrumb
-            let homeCrumb = document.createElement('li');
-            homeCrumb.className = 'inline-flex items-center';
-            homeCrumb.innerHTML = `<a href="#" class="text-indigo-600 hover:text-indigo-800" data-path-index="-1">Home</a>`;
-            breadcrumbsContainer.appendChild(homeCrumb);
-
-            // Add path segments
-            currentLibraryPath.forEach((folderName, index) => {
-                let li = document.createElement('li');
-                li.className = 'inline-flex items-center';
-                li.innerHTML = `
-                    <svg class="w-4 h-4 text-gray-400 mx-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
-                    <a href="#" class="text-indigo-600 hover:text-indigo-800" data-path-index="${index}">${folderName}</a>
-                `;
-                breadcrumbsContainer.appendChild(li);
-            });
-
-            // Add event listeners to breadcrumbs
-            breadcrumbsContainer.querySelectorAll('a').forEach(crumb => {
-                crumb.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    const index = parseInt(event.target.dataset.pathIndex);
-                    if (index === -1) { // Home clicked
-                        currentLibraryPath = [];
-                    } else {
-                        currentLibraryPath = currentLibraryPath.slice(0, index + 1);
-                    }
-                    saveCurrentPathToHistory(); // Save new path after breadcrumb navigation
-                    renderLibraryGrid(); // Re-render grid for new path
-                });
-            });
-        }
-
-
-        /**
          * Renders the items (folders and PDFs) in the current library path.
          */
         async function renderLibraryGrid() {
@@ -780,7 +914,7 @@
                 actionButtonText.textContent = 'Change Library Folder';
                 emptyLibraryMessage.textContent = 'Your library folder is currently empty or not set.';
                 emptyLibraryHint.textContent = 'Click the button below to specify a new folder location.';
-                
+
                 // Set the handler for the action button to change path
                 actionButton.onclick = handleChangeLibraryFolder;
 
@@ -837,7 +971,6 @@
                 libraryGrid.appendChild(itemElement);
             });
 
-            renderBreadcrumbs(); // Update breadcrumbs whenever grid is rendered
             updateSortButtonStyles(); // Update button styles
             updateNavigationButtonStates(); // Update navigation button states
 
@@ -946,11 +1079,8 @@
          * Opens a PDF from the library by passing its ID to index.html.
          * @param {number} itemId - The ID of the PDF item to open.
          */
-        function openPdfFromLibrary(itemId) {
-            // Instead of opening directly, store the item ID in localStorage
-            // and redirect to index.html. index.html will then fetch the PDF URL.
-            localStorage.setItem('songToPlayFromPlaylistId', itemId);
-            window.location.href = 'index.html';
+        function openPdfFromLibrary(songId) {
+            window.location.href = 'index.html?songId=' + songId;
         }
 
         /**
@@ -975,7 +1105,7 @@
                 const button = sortButtons[key];
                 // Remove all specific active/inactive styling classes
                 button.classList.remove('active');
-                
+
                 if (key === currentSortOrder) {
                     // Apply active styles
                     button.classList.add('active');
@@ -994,12 +1124,16 @@
                 playlistsView.classList.add('hidden');
                 libraryTabButton.classList.add('active');
                 playlistsTabButton.classList.remove('active');
+                navButtonContainer.classList.remove('invisible'); // Show nav buttons for library
+                optionsButtonContainer.classList.remove('invisible'); // Show options for library
                 await renderLibraryGrid(); // Re-render library grid on switch
             } else {
                 libraryView.classList.add('hidden');
                 playlistsView.classList.remove('hidden');
                 libraryTabButton.classList.remove('active');
                 playlistsTabButton.classList.add('active');
+                navButtonContainer.classList.add('invisible'); // Hide nav buttons for playlists
+                optionsButtonContainer.classList.add('invisible'); // Hide options for playlists
                 await fetchPlaylistsData(); // Fetch playlists before rendering
                 renderPlaylistsList(); // Render playlists on switch
             }
@@ -1037,12 +1171,29 @@
             playlistsData.forEach(playlist => {
                 const playlistElement = document.createElement('div');
                 playlistElement.className = 'playlist-list-item';
-                playlistElement.innerHTML = `
+
+                // Clickable area for navigation
+                const clickableArea = document.createElement('div');
+                clickableArea.className = 'flex items-center flex-grow cursor-pointer';
+                clickableArea.innerHTML = `
                     <i class="fas fa-music icon"></i>
                     <span class="name">${playlist.name}</span>
                     <span class="song-count">${playlist.song_count} songs</span>
                 `;
-                playlistElement.addEventListener('click', () => openPlaylistDetail(playlist.id));
+                clickableArea.addEventListener('click', () => openPlaylistDetail(playlist.id));
+
+                // Delete button
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'ml-4 p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-red-100 transition-colors';
+                deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                deleteButton.title = 'Delete Playlist';
+                deleteButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    handleDeletePlaylist(playlist.id, playlist.name);
+                });
+
+                playlistElement.appendChild(clickableArea);
+                playlistElement.appendChild(deleteButton);
                 playlistsList.appendChild(playlistElement);
             });
         }
@@ -1056,6 +1207,31 @@
         }
 
         /**
+         * Handles the deletion of a playlist.
+         * @param {number} playlistId - The ID of the playlist to delete.
+         * @param {string} playlistName - The name of the playlist for the confirmation dialog.
+         */
+        async function handleDeletePlaylist(playlistId, playlistName) {
+            if (!confirm(`Are you sure you want to delete the playlist "${playlistName}"? This cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/playlists/${playlistId}`, { method: 'DELETE' });
+                const result = await response.json();
+
+                if (!response.ok) throw new Error(result.error || 'Could not delete playlist.');
+
+                showMessage(result.message, 2500);
+                await fetchPlaylistsData();
+                renderPlaylistsList();
+            } catch (error) {
+                console.error("Error deleting playlist:", error);
+                showMessage(`Error: ${error.message}`, 4000);
+            }
+        }
+
+        /**
          * Displays the song details modal.
          * @param {Event} event - The mouse or touch event.
          * @param {number} itemId - The ID of the library item (PDF) clicked.
@@ -1066,7 +1242,7 @@
             selectedItemForModal = { id: itemId, name: itemName }; // Store the item ID and name
 
             modalSongTitle.textContent = itemName; // Set modal title
-            
+
             // Fetch the full item details including dates for metadata tab
             try {
                 const response = await fetch(`/api/library/${itemId}`);
@@ -1074,17 +1250,18 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const itemDetails = await response.json();
-                
+
                 // Populate metadata fields
                 inputMetadataFilename.value = itemDetails.name || '';
                 // Default title to filename without extension if no title is provided
-                inputMetadataTitle.value = itemDetails.title || removeFileExtension(itemDetails.name) || ''; 
+                inputMetadataTitle.value = itemDetails.title || removeFileExtension(itemDetails.name) || '';
                 inputMetadataComposer.value = itemDetails.composer || '';
                 inputMetadataGenre.value = itemDetails.genre || '';
                 inputMetadataTag.value = itemDetails.tag || '';
                 inputMetadataLabel.value = itemDetails.label || '';
                 inputMetadataRating.value = itemDetails.rating || '';
                 inputMetadataDifficulty.value = itemDetails.difficulty || '';
+                inputMetadataPlaytime.value = itemDetails.playtime || '';
                 inputMetadataTime.value = itemDetails.time || '';
                 inputMetadataKey.value = itemDetails.key || '';
 
@@ -1126,38 +1303,54 @@
                 return;
             }
 
+            // --- Validation ---
+            const ratingValue = inputMetadataRating.value.trim();
+            if (ratingValue && (isNaN(ratingValue) || !Number.isFinite(parseFloat(ratingValue)))) {
+                showMessage("Invalid Rating: Please enter a number.", 3000);
+                inputMetadataRating.focus(); // Put focus back on the invalid field
+                return; // Stop the save
+            }
+
+            const playtimeValue = inputMetadataPlaytime.value.trim();
+            const playtimeRegex = /^\d{1,2}:\d{2}$/;
+            if (playtimeValue && !playtimeRegex.test(playtimeValue)) {
+                showMessage("Invalid Playtime: Please use MM:SS format.", 3000);
+                inputMetadataPlaytime.focus(); // Put focus back on the invalid field
+                return; // Stop the save
+            }
+
             const updatedMetadata = {
                 title: inputMetadataTitle.value.trim(),
                 composer: inputMetadataComposer.value.trim(),
                 genre: inputMetadataGenre.value.trim(),
                 tag: inputMetadataTag.value.trim(),
                 label: inputMetadataLabel.value.trim(),
-                rating: inputMetadataRating.value.trim(),
+                rating: ratingValue,
                 difficulty: inputMetadataDifficulty.value.trim(),
+                playtime: playtimeValue,
                 time: inputMetadataTime.value.trim(),
-                key: inputMetadataKey.value.trim(),
-                date_created: inputMetadataDateCreated.value.trim(), 
-                date_last_played: inputMetadataLastPlayed.value.trim() 
+                key: inputMetadataKey.value.trim()
             };
 
             // Only attempt to save if any value has actually changed
             // This requires storing the current values and comparing them before sending
             // For now, simplify: if any field has focus and blur, it triggers a save.
             // A more robust solution would track actual changes or debounce.
-            
+
             // For filename, it's disabled. If it were editable, it would need to be included here too
             // and handled by a specific rename API call if it changes.
-            
+
             showMessage("Saving metadata changes...", 1000); // Shorter message for auto-save
             try {
                 const response = await fetch(`/api/library/${selectedItemForModal.id}/metadata`, {
-                    method: 'POST', 
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify(updatedMetadata)
                 });
                 const result = await response.json();
+                console.log("this far");
                 if (response.ok) {
                     showMessage(result.message || "Metadata updated.", 1000);
                     // After saving, re-fetch library data to ensure consistency across the app
@@ -1232,7 +1425,7 @@
                 } else {
                     songPlaylists.forEach(playlist => {
                         const playlistItem = document.createElement('div');
-                        playlistItem.className = 'playlist-item-with-remove'; 
+                        playlistItem.className = 'playlist-item-with-remove';
                         playlistItem.innerHTML = `
                             <span>${playlist.name}</span>
                             <button data-playlist-id="${playlist.id}" class="remove-from-playlist-button">
@@ -1383,35 +1576,58 @@
          * Handles the change library folder action.
          */
         async function handleChangeLibraryFolder() {
-            optionsDropdown.classList.remove('active'); // Close dropdown if opened from there
-            const newPath = prompt("Enter the new path for your PDF library folder (e.g., C:\\MyPdfs or /home/user/Music/Sheet Music):");
-            if (newPath && newPath.trim() !== '') {
-                showMessage("Attempting to change library folder and rescan...", 3000);
-                try {
-                    const response = await fetch('/api/update_pdf_path', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ new_path: newPath.trim() })
-                    });
-                    const result = await response.json();
-                    if (response.ok) {
-                        showMessage(result.message, 3000);
-                        // Re-fetch and re-render the library after successful path update and rescan
-                        await fetchLibraryData();
-                        currentLibraryPath = []; // Reset path to root after new folder
-                        saveCurrentPathToHistory();
-                        renderLibraryGrid();
-                    } else {
-                        showMessage(`Path Change Error: ${result.error || 'Could not change library folder.'}`, 5000);
-                    }
-                } catch (error) {
-                    console.error("Error changing library folder:", error);
-                    showMessage("Network error: Could not connect to change library folder.", 5000);
+            optionsDropdown.classList.remove('active'); // Close main options dropdown if open
+
+            // Fetch the current path to pre-fill the input
+            try {
+                const response = await fetch('/api/config/pdf_storage_path');
+                if (response.ok) {
+                    const data = await response.json();
+                    newPathInput.value = data.path || '';
+                } else {
+                    newPathInput.value = ''; // Fallback to empty if fetch fails
                 }
-            } else if (newPath !== null) { // User clicked cancel or entered empty string
-                showMessage("Library folder change cancelled or empty path provided.", 2000);
+            } catch (error) {
+                newPathInput.value = ''; // Fallback to empty on network error
+                console.error("Could not fetch current library path:", error);
+            }
+
+            changePathModal.classList.remove('hidden');
+            changePathModal.classList.add('active');
+            newPathInput.focus();
+        }
+
+        /**
+         * Saves the new library path from the modal.
+         */
+        async function saveNewLibraryPath() {
+            const newPath = newPathInput.value.trim();
+            if (newPath === '') {
+                showMessage("Path cannot be empty.", 2000);
+                return;
+            }
+
+            changePathModal.classList.remove('active');
+            changePathModal.classList.add('hidden');
+            showMessage("Attempting to change library folder and rescan...", 3000);
+
+            try {
+                const response = await fetch('/api/update_pdf_path', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_path: newPath })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Could not change library folder.');
+
+                showMessage(result.message, 3000);
+                await fetchLibraryData();
+                currentLibraryPath = [];
+                saveCurrentPathToHistory();
+                renderLibraryGrid();
+            } catch (error) {
+                console.error("Error changing library folder:", error);
+                showMessage(`Error: ${error.message}`, 5000);
             }
         }
 
@@ -1444,6 +1660,12 @@
         // New event listener for "Change Library Folder" button in options dropdown
         changeLibraryFolderButton.addEventListener('click', handleChangeLibraryFolder);
 
+        // Change Path Modal Listeners
+        closeChangePathModalButton.addEventListener('click', () => { changePathModal.classList.remove('active'); changePathModal.classList.add('hidden'); });
+        cancelChangePathButton.addEventListener('click', () => { changePathModal.classList.remove('active'); changePathModal.classList.add('hidden'); });
+        saveNewPathButton.addEventListener('click', saveNewLibraryPath);
+        newPathInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveNewLibraryPath(); });
+
         // Song Details Modal Event Listeners
         closeModalButton.addEventListener('click', closeSongDetailsModal);
         // Swapped order of tab button listeners
@@ -1458,10 +1680,9 @@
         inputMetadataLabel.addEventListener('blur', saveMetadataChanges);
         inputMetadataRating.addEventListener('blur', saveMetadataChanges);
         inputMetadataDifficulty.addEventListener('blur', saveMetadataChanges);
+        inputMetadataPlaytime.addEventListener('blur', saveMetadataChanges);
         inputMetadataTime.addEventListener('blur', saveMetadataChanges);
         inputMetadataKey.addEventListener('blur', saveMetadataChanges);
-        inputMetadataDateCreated.addEventListener('blur', saveMetadataChanges);
-        inputMetadataLastPlayed.addEventListener('blur', saveMetadataChanges);
 
         // Tab switching listeners
         libraryTabButton.addEventListener('click', () => switchView('library'));
@@ -1506,6 +1727,14 @@
             if (songDetailsModal.classList.contains('active') && !songDetailsModal.querySelector('#songDetailsModalContent').contains(event.target) && !event.target.closest('.library-grid-item.pdf')) {
                 closeSongDetailsModal();
             }
+            // Close change path modal
+            if (changePathModal.classList.contains('active') &&
+                !changePathModal.querySelector('.bg-white').contains(event.target) &&
+                !event.target.closest('#changeLibraryFolderButton') &&
+                !event.target.closest('#actionButton')) {
+                changePathModal.classList.remove('active');
+                changePathModal.classList.add('hidden');
+            }
         });
 
         // Prevent default context menu on entire body, let specific elements handle it.
@@ -1539,4 +1768,5 @@
         });
     </script>
 </body>
+
 </html>

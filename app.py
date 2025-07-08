@@ -1,5 +1,6 @@
 import sqlite3
 import json
+import re
 from flask import Flask, send_from_directory, g, request, jsonify
 from datetime import datetime, timezone
 import os
@@ -44,12 +45,22 @@ def scan_pdfs_and_populate_db():
     db = get_db()
     cursor = db.cursor()
 
+    # --- Preserve playlist associations ---
+    print("Backing up playlist associations...")
+    cursor.execute("""
+        SELECT ps.playlist_id, li.pdf_url, ps.order_index
+        FROM PlaylistSong ps
+        JOIN LibraryItem li ON ps.library_item_id = li.id
+    """)
+    playlist_backup = [dict(row) for row in cursor.fetchall()]
+    print(f"Backed up {len(playlist_backup)} playlist entries.")
+
     # Clear existing library items and playlist songs before scanning
     # This is crucial to refresh the library from the file system
     cursor.execute("DELETE FROM PlaylistSong") # Must delete playlist songs first due to FK constraint
     cursor.execute("DELETE FROM LibraryItem")
     db.commit()
-    print("Cleared existing library and playlist data.")
+    print("Cleared existing library and playlist data for refresh.")
 
     # Only proceed with scanning if PDF_STORAGE_PATH_VAR is set and is a valid directory
     if not PDF_STORAGE_PATH_VAR or not os.path.isdir(PDF_STORAGE_PATH_VAR):
@@ -103,6 +114,36 @@ def scan_pdfs_and_populate_db():
     db.commit()
     print("Library scanned and database populated.")
 
+    # --- Restore playlist associations ---
+    print("Restoring playlist associations...")
+    restored_count = 0
+    if playlist_backup:
+        # Create a map of pdf_url to new id for faster lookups
+        cursor.execute("SELECT id, pdf_url FROM LibraryItem WHERE type = 'pdf'")
+        new_id_map = {row['pdf_url']: row['id'] for row in cursor.fetchall()}
+
+        for entry in playlist_backup:
+            playlist_id = entry['playlist_id']
+            pdf_url = entry['pdf_url']
+            order_index = entry['order_index']
+
+            new_song_id = new_id_map.get(pdf_url)
+
+            if new_song_id:
+                try:
+                    cursor.execute(
+                        "INSERT INTO PlaylistSong (playlist_id, library_item_id, order_index) VALUES (?, ?, ?)",
+                        (playlist_id, new_song_id, order_index)
+                    )
+                    restored_count += 1
+                except sqlite3.IntegrityError:
+                    print(f"Warning: Could not restore playlist entry for PDF '{pdf_url}' - possibly a duplicate.")
+            else:
+                print(f"Warning: PDF '{pdf_url}' from a playlist was not found after rescan. It will be removed from the playlist.")
+    
+    db.commit()
+    print(f"Restored {restored_count} playlist entries.")
+
 def init_db():
     """
     Initializes the database: creates tables and loads initial configuration.
@@ -132,6 +173,19 @@ def init_db():
             FOREIGN KEY (parent_id) REFERENCES LibraryItem (id)
         )
     ''')
+
+    # Add metadata columns if they don't exist (for backward compatibility)
+    metadata_columns = {
+        'title': 'TEXT', 'composer': 'TEXT', 'genre': 'TEXT', 'tag': 'TEXT',
+        'label': 'TEXT', 'rating': 'TEXT', 'difficulty': 'TEXT', 'playtime': 'TEXT',
+        'key': 'TEXT', 'time': 'TEXT'
+    }
+    cursor.execute("PRAGMA table_info(LibraryItem)")
+    existing_columns = {row['name'] for row in cursor.fetchall()}
+    for col_name, col_type in metadata_columns.items():
+        if col_name not in existing_columns:
+            cursor.execute(f"ALTER TABLE LibraryItem ADD COLUMN {col_name} {col_type}")
+            print(f"Added column '{col_name}' to LibraryItem table.")
 
     # Create Playlist table
     cursor.execute('''
@@ -163,11 +217,16 @@ def init_db():
     else:
         print("PDF_STORAGE_PATH_VAR not found in config. It remains unset.")
 
-    # After tables are created and PDF_STORAGE_PATH_VAR is loaded/unset,
-    # proceed with scanning if a path exists, or set up for empty library.
-    # We call scan_pdfs_and_populate_db directly, which now handles the 'None' case.
-    scan_pdfs_and_populate_db()
-    
+    # Check if the library has any items. If not, perform an initial scan.
+    # This prevents wiping the database on every application start.
+    cursor.execute("SELECT COUNT(id) FROM LibraryItem")
+    item_count = cursor.fetchone()[0]
+    if item_count == 0:
+        print("Library is empty. Performing initial scan.")
+        scan_pdfs_and_populate_db()
+    else:
+        print(f"Library contains {item_count} items. Skipping scan on startup.")
+
     # Also ensure initial playlists are present if the Playlist table is empty
     cursor.execute("SELECT COUNT(*) FROM Playlist")
     if cursor.fetchone()[0] == 0:
@@ -305,7 +364,11 @@ def get_library_item(item_id):
     db = get_db()
     cursor = db.cursor()
     # Alias pdf_url as file_path to match frontend expectation
-    cursor.execute("SELECT id, name, type, pdf_url AS file_path, date_created, date_last_played FROM LibraryItem WHERE id = ?", (item_id,))
+    cursor.execute("""
+        SELECT id, name, type, pdf_url AS file_path, date_created, date_last_played,
+               title, composer, genre, tag, label, rating, difficulty, playtime, key, time
+        FROM LibraryItem WHERE id = ?
+    """, (item_id,))
     item = cursor.fetchone()
     if item:
         return jsonify(dict(item)), 200
@@ -374,6 +437,17 @@ def update_pdf_path():
         print(f"Error during library rescan after path update: {e}")
         return jsonify({"error": f"Failed to rescan library with new path: {str(e)}"}), 500
 
+@app.route('/api/config/pdf_storage_path', methods=['GET'])
+def get_pdf_storage_path():
+    """
+    API endpoint to get the currently configured PDF storage path.
+    """
+    if PDF_STORAGE_PATH_VAR:
+        return jsonify({"path": PDF_STORAGE_PATH_VAR}), 200
+    else:
+        # Return a specific status even if path is not set, but indicate it's not an error
+        return jsonify({"path": None, "message": "PDF storage path is not set."}), 200
+
 @app.route('/api/library/rename/<int:item_id>', methods=['POST'])
 def rename_library_item(item_id):
     """
@@ -436,6 +510,57 @@ def rename_library_item(item_id):
         db.rollback()
         return jsonify({"error": f"Database error: {str(e)}"}), 500
 
+@app.route('/api/library/<int:item_id>/metadata', methods=['POST'])
+def update_library_item_metadata(item_id):
+    """
+    API endpoint to update various metadata fields for a specific library item.
+    """
+    db = get_db()
+    data = request.get_json()
+
+    # These are the fields the frontend can update.
+    allowed_fields = [
+        'title', 'composer', 'genre', 'tag', 'label', 'rating',
+        'difficulty', 'playtime', 'key', 'time'
+    ]
+
+    # Build the SET part of the SQL query dynamically and safely
+    set_clauses = []
+    values = []
+    for field in allowed_fields:
+        if field in data:
+            value = data.get(field)
+
+            # Server-side validation
+            if field == 'rating' and value:
+                try:
+                    float(value) # Check if it can be cast to a number
+                except (ValueError, TypeError):
+                    return jsonify({"error": "Invalid rating format. Must be a number."}), 400
+            
+            if field == 'playtime' and value:
+                if not re.match(r'^\d{1,2}:\d{2}$', value):
+                    return jsonify({"error": "Invalid playtime format. Must be MM:SS."}), 400
+
+            set_clauses.append(f"{field} = ?")
+            values.append(value)
+
+    if not set_clauses:
+        return jsonify({"error": "No valid metadata fields provided for update."}), 400
+
+    sql_query = f"UPDATE LibraryItem SET {', '.join(set_clauses)} WHERE id = ?"
+    values.append(item_id)
+
+    try:
+        cursor = db.cursor()
+        cursor.execute(sql_query, tuple(values))
+        if cursor.rowcount == 0:
+            return jsonify({"error": "Item not found"}), 404
+        db.commit()
+        return jsonify({"message": "Metadata updated successfully."}), 200
+    except sqlite3.Error as e:
+        db.rollback()
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 @app.route('/api/playlists', methods=['GET'])
 def get_playlists():
@@ -515,6 +640,28 @@ def get_single_playlist(playlist_id):
     playlist_dict['songs'] = songs
 
     return jsonify(playlist_dict), 200
+
+@app.route('/api/playlists/<int:playlist_id>', methods=['DELETE'])
+def delete_playlist(playlist_id):
+    """
+    API endpoint to delete a playlist and all its song associations.
+    """
+    db = get_db()
+    try:
+        cursor = db.cursor()
+        # First, delete all song associations for this playlist to satisfy foreign key constraints
+        cursor.execute("DELETE FROM PlaylistSong WHERE playlist_id = ?", (playlist_id,))
+        # Then, delete the playlist itself
+        cursor.execute("DELETE FROM Playlist WHERE id = ?", (playlist_id,))
+        
+        if cursor.rowcount == 0:
+            return jsonify({"error": "Playlist not found"}), 404
+            
+        db.commit()
+        return jsonify({"message": "Playlist deleted successfully"}), 200
+    except sqlite3.Error as e:
+        db.rollback()
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 @app.route('/api/playlists/<int:playlist_id>/songs', methods=['POST'])
 def add_song_to_playlist(playlist_id):
