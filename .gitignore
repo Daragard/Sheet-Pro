@@ -1,0 +1,14 @@
+# Local database file
+maestro_score.db
+
+# Python virtual environment
+# This directory contains project-specific dependencies and should not be committed.
+venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# VSCode editor settings
+# These are typically user-specific and don't belong in the repository.
+.vscode/

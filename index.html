@@ -990,62 +990,17 @@
             }
         }
 
-                /**
-         * Reorders a song within the playlist.
-         * @param {string} draggedSongId - The ID of the song being dragged.
-         * @param {string} targetSongId - The ID of the song being dropped onto.
-         */
-        async function reorderSong(draggedSongId, targetSongId) {
-            const draggedIdNum = parseInt(draggedSongId, 10);
-            const draggedIndex = currentPlaylistSongs.findIndex(s => s.id === draggedIdNum);
-            const targetIndex = currentPlaylistSongs.findIndex(s => s.id === targetSongId);
-
-            if (draggedIndex === -1 || targetIndex === -1) {
-                console.error("Dragged or target song not found.");
-                return;
-            }
-
-            // Remove the dragged song from its original position
-            const [draggedSong] = currentPlaylistSongs.splice(draggedIndex, 1);
-
-            // Insert the dragged song at the new position
-            currentPlaylistSongs.splice(targetIndex, 0, draggedSong);
-
-            // Update the server with the new order
-            try {
-                const songIds = currentPlaylistSongs.map(s => s.id);
-                const response = await fetch(`/api/playlists/${currentPlaylistId}/reorder`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ new_order: songIds })
-                });
-
-                if (response.ok) {
-                    showMessage("Playlist reordered successfully.", 1500);
-                    renderPlaylistSongs(); // Re-render UI to reflect new order
-                } else {
-                    showMessage("Failed to reorder playlist.", 3000);
-                    console.error("Failed to reorder playlist:", response.status, response.statusText);
-                    fetchPlaylistSongs(); // Revert to server's state if reorder fails
-                }
-            } catch (error) {
-                showMessage("Error reordering playlist.", 3000);
-                console.error("Error reordering playlist:", error);
-                fetchPlaylistSongs(); // Revert to server's state if reorder fails
-            }
-        }
-
         /**
          * Renders the songs currently in `currentViewablePlaylistSongs` into the playlist panel UI.
          */
         function renderPlaylist() {
+            console.log("[Playlist Render] Rendering playlist items.");
             playlistItemsUl.innerHTML = '';
             playlistTitleElement.textContent = currentPlayingPlaylistName;
 
             if (currentViewablePlaylistSongs.length === 0) {
                 playlistItemsUl.innerHTML = '<li class="p-2 text-gray-500">No songs in playlist.</li>';
+                console.log("[Playlist Render] Playlist is empty.");
                 return;
             }
 
@@ -1140,54 +1095,55 @@
                 });
                 playlistItemsUl.appendChild(li);
             });
+            console.log("[Playlist Render] Playlist items rendered.");
         }
 
-        // /**
-        //  * Reorders a song within the playlist, both locally and on the server.
-        //  * @param {string} draggedSongId - The ID of the song being dragged.
-        //  * @param {string} targetSongId - The ID of the song being dropped onto.
-        //  */
-        // async function reorderSong(draggedSongId, targetSongId) {
-        //     const draggedIdNum = parseInt(draggedSongId, 10);
-        //     const targetIdNum = parseInt(targetSongId, 10);
+        /**
+         * Reorders a song within the playlist, both locally and on the server.
+         * @param {string} draggedSongId - The ID of the song being dragged.
+         * @param {string} targetSongId - The ID of the song being dropped onto.
+         */
+        async function reorderSong(draggedSongId, targetSongId) {
+            const draggedIdNum = parseInt(draggedSongId, 10);
+            const targetIdNum = parseInt(targetSongId, 10);
 
-        //     const draggedIndex = currentViewablePlaylistSongs.findIndex(s => s.id === draggedIdNum);
-        //     const targetIndex = currentViewablePlaylistSongs.findIndex(s => s.id === targetIdNum);
+            const draggedIndex = currentViewablePlaylistSongs.findIndex(s => s.id === draggedIdNum);
+            const targetIndex = currentViewablePlaylistSongs.findIndex(s => s.id === targetIdNum);
 
-        //     if (draggedIndex === -1 || targetIndex === -1) {
-        //         console.error("Dragged or target song not found in playlist array.");
-        //         return;
-        //     }
+            if (draggedIndex === -1 || targetIndex === -1) {
+                console.error("Dragged or target song not found in playlist array.");
+                return;
+            }
 
-        //     // Backup original order in case of server error
-        //     const originalOrder = [...currentViewablePlaylistSongs];
+            // Backup original order in case of server error
+            const originalOrder = [...currentViewablePlaylistSongs];
 
-        //     // Reorder locally for immediate UI update
-        //     const [draggedSong] = currentViewablePlaylistSongs.splice(draggedIndex, 1);
-        //     currentViewablePlaylistSongs.splice(targetIndex, 0, draggedSong);
+            // Reorder locally for immediate UI update
+            const [draggedSong] = currentViewablePlaylistSongs.splice(draggedIndex, 1);
+            currentViewablePlaylistSongs.splice(targetIndex, 0, draggedSong);
             
-        //     // Re-render the UI with the new optimistic order
-        //     renderPlaylist();
+            // Re-render the UI with the new optimistic order
+            renderPlaylist();
 
-        //     // Update the server with the new order
-        //     try {
-        //         const songIds = currentViewablePlaylistSongs.map(s => s.id);
-        //         const response = await fetch(`/api/playlists/${currentPlaylistId}/reorder`, {
-        //             method: 'POST',
-        //             headers: { 'Content-Type': 'application/json' },
-        //             body: JSON.stringify({ new_order: songIds })
-        //         });
+            // Update the server with the new order
+            try {
+                const songIds = currentViewablePlaylistSongs.map(s => s.id);
+                const response = await fetch(`/api/playlists/${currentPlaylistId}/reorder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_order: songIds })
+                });
 
-        //         if (!response.ok) throw new Error('Failed to save new order to server.');
+                if (!response.ok) throw new Error('Failed to save new order to server.');
                 
-        //         showMessage("Playlist reordered successfully.", 1500);
-        //     } catch (error) {
-        //         showMessage("Error saving new playlist order. Reverting.", 3000);
-        //         console.error("Error reordering playlist:", error);
-        //         currentViewablePlaylistSongs = originalOrder;
-        //         renderPlaylist();
-        //     }
-        // }
+                showMessage("Playlist reordered successfully.", 1500);
+            } catch (error) {
+                showMessage("Error saving new playlist order. Reverting.", 3000);
+                console.error("Error reordering playlist:", error);
+                currentViewablePlaylistSongs = originalOrder;
+                renderPlaylist();
+            }
+        }
 
 
         // Automatic PDF load on app startup and render initial state of playlist
