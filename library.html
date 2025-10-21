@@ -598,7 +598,7 @@
         </div>
 
         <!-- Main Content Area: Playlists View (initially hidden) -->
-        <div id="playlistsView" class="flex-1 flex-col pt-4 h-full hidden">
+        <div id="playlistsView" class="flex-1 flex flex-col pt-4 h-full hidden">
             <h2 class="text-xl font-bold text-gray-800 mb-4 px-4">My Playlists</h2>
             <div id="playlistsList" class="flex flex-col gap-2 overflow-y-auto pb-4 px-4">
                 <!-- Playlists will be dynamically inserted here -->
@@ -1739,9 +1739,11 @@
 
         // Prevent default context menu on entire body, let specific elements handle it.
         document.body.addEventListener('contextmenu', (event) => {
-            // Only prevent default if the target is NOT a PDF item.
-            // PDF items have their own contextmenu handler (openSongDetailsModal)
-            if (!event.target.closest('.library-grid-item.pdf')) {
+            // Only prevent default context menu in the library grid view.
+            // This allows normal touch-and-hold behavior (like scrolling) in other areas like the playlist list.
+            const libraryGrid = document.getElementById('libraryGrid');
+            if (libraryGrid.contains(event.target) && !event.target.closest('.library-grid-item.pdf')) {
+                // Prevent context menu on the grid background, but not on the PDF items themselves.
                 event.preventDefault();
             }
         });

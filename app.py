@@ -479,6 +479,13 @@ def rename_library_item(item_id):
     if not new_name.lower().endswith('.pdf'):
         new_name += '.pdf'
     
+    old_filename = os.path.basename(old_relative_path)
+    old_dirname = os.path.dirname(old_relative_path)
+    
+    # Ensure the new name retains the .pdf extension if it's a PDF
+    if not new_name.lower().endswith('.pdf'):
+        new_name += '.pdf'
+    
     new_relative_path = os.path.join(old_dirname, new_name)
 
     # Use the globally configured PDF_STORAGE_PATH_VAR
@@ -812,4 +819,4 @@ def playlist():
 
 # This block ensures the Flask development server runs only when the script is executed directly.
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)
