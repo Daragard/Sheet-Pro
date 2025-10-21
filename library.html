@@ -33,6 +33,26 @@
             /* Firefox */
         }
 
+        /* --- Auto-hiding scrollbar for modern browsers --- */
+        /* This will apply to the library grid and the playlist list */
+        #libraryGrid, #playlistsList {
+            scrollbar-width: thin; /* For Firefox */
+            scrollbar-color: transparent transparent; /* For Firefox */
+        }
+        #libraryGrid:hover, #playlistsList:hover {
+            scrollbar-color: #a0aec0 #f1f1f1; /* thumb and track color on hover */
+        }
+        #libraryGrid::-webkit-scrollbar, #playlistsList::-webkit-scrollbar {
+            width: 8px;
+        }
+        #libraryGrid::-webkit-scrollbar-track, #playlistsList::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #libraryGrid:hover::-webkit-scrollbar-thumb, #playlistsList:hover::-webkit-scrollbar-thumb {
+            background: #a0aec0; /* A neutral gray color */
+            border-radius: 4px;
+        }
+
         #qrCodeContainer canvas {
             display: block; /* Removes extra space below the canvas */
         }
@@ -551,7 +571,7 @@
 <body class="h-screen w-screen flex flex-col p-4 gap-4">
 
     <!-- Main Library Content -->
-    <div id="libraryMainContent" class="flex-1 flex flex-col p-4 bg-white rounded-xl shadow-lg h-full overflow-x-auto">
+    <div id="libraryMainContent" class="flex-1 flex flex-col p-4 bg-white rounded-xl shadow-lg overflow-hidden">
         <!-- Header for Library View -->
         <header class="p-4 bg-gray-900 text-white shadow-lg rounded-t-lg">
             <div class="grid grid-cols-3 items-center">
@@ -608,7 +628,7 @@
         </header>
 
         <!-- Main Content Area: Library View -->
-        <div id="libraryView" class="flex-1 flex flex-col pt-4 h-full">
+        <div id="libraryView" class="flex-1 flex flex-col pt-4 overflow-hidden">
             <!-- Scan Library Section (hidden by default) -->
             <div id="scanLibrarySection"
                 class="flex flex-col items-center justify-center h-full text-center p-8 bg-gray-50 rounded-lg shadow-inner hidden">
@@ -624,13 +644,13 @@
             </div>
 
             <!-- Library Grid -->
-            <div id="libraryGrid" class="grid grid-cols-6 mt-6 gap-x-4 gap-y-4 overflow-y-auto pb-4 px-4">
+            <div id="libraryGrid" class="grid grid-cols-6 mt-6 gap-x-4 gap-y-4 overflow-y-auto pb-12 px-4">
                 <!-- Library items will be dynamically inserted here -->
             </div>
         </div>
 
         <!-- Main Content Area: Playlists View (initially hidden) -->
-        <div id="playlistsView" class="flex-1 flex flex-col pt-4 h-full hidden">
+        <div id="playlistsView" class="flex-1 flex flex-col pt-4 overflow-hidden hidden">
             <h2 class="text-xl font-bold text-gray-800 mb-4 px-4">My Playlists</h2>
             <div id="playlistsList" class="flex flex-col gap-2 overflow-y-auto pb-4 px-4">
                 <!-- Playlists will be dynamically inserted here -->
