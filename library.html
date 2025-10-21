@@ -33,6 +33,33 @@
             /* Firefox */
         }
 
+        #qrCodeContainer canvas {
+            display: block; /* Removes extra space below the canvas */
+        }
+
+        /* --- Share Modal Styles (similar to other modals) --- */
+        #shareModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.6);
+            /* Semi-transparent black background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s;
+        }
+
+        #shareModal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
         /* Styling for disabled buttons to indicate their state */
         .button-disabled {
             opacity: 0.5;
@@ -555,12 +582,17 @@
                 </div>
 
                 <!-- Right side: Options button -->
-                <div id="optionsButtonContainer" class="flex items-center justify-end">
+                <div id="optionsButtonContainer" class="flex items-center justify-end space-x-2">
+                    <button id="shareButton"
+                        class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-colors text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                        Remote Connect
+                    </button>
                     <div class="relative">
                         <button id="optionsButton"
                             class="p-2 rounded-full hover:bg-gray-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
                             <i class="fas fa-ellipsis-h text-lg"></i>
                         </button>
+
                         <!-- Options Dropdown Menu -->
                         <div id="optionsDropdown" class="options-dropdown top-full right-0">
                             <button id="alphabeticalSortButton" data-sort-order="alphabetical">Alphabetical</button>
@@ -732,6 +764,35 @@
         </div>
     </div>
 
+    <!-- Share Modal -->
+    <div id="shareModal" class="hidden">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-sm flex flex-col">
+            <header class="flex items-center justify-between p-4 border-b border-gray-200">
+                <h2 class="text-xl font-bold text-gray-800">Share Server Address</h2>
+                <button id="closeShareModalButton"
+                    class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </header>
+            <main class="p-6 flex flex-col items-center">
+                <p class="text-gray-600 mb-4 text-center">
+                    Scan this QR code or copy the link to access this server from another device on the same network.
+                </p>
+                <div id="qrCodeContainer" class="mb-4 p-2 border rounded-lg bg-white">
+                    <!-- QR code will be generated here -->
+                </div>
+                <div class="w-full">
+                    <p class="text-sm text-gray-500 mb-1">Server Address:</p>
+                    <div class="flex items-center border border-gray-300 rounded-md p-2 bg-gray-50">
+                        <input type="text" id="serverLinkInput" readonly
+                            class="flex-grow bg-transparent outline-none border-none text-gray-700">
+                        <button id="copyLinkButton" class="ml-2 text-gray-500 hover:text-indigo-600">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
     <!-- Message box for user feedback -->
     <div id="messageBox"
         class="fixed bottom-8 left-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 pointer-events: none; z-50">
@@ -739,6 +800,10 @@
 
     <script>
         // --- DOM Element References ---
+        // QR Code library
+        const qrCodeScript = document.createElement('script');
+        qrCodeScript.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js';
+        document.head.appendChild(qrCodeScript);
         const messageBox = document.getElementById('messageBox');
         const libraryMainContent = document.getElementById('libraryMainContent');
         const libraryGrid = document.getElementById('libraryGrid');
@@ -806,6 +871,14 @@
         const cancelChangePathButton = document.getElementById('cancelChangePathButton');
         const saveNewPathButton = document.getElementById('saveNewPathButton');
         const newPathInput = document.getElementById('newPathInput');
+
+        // Share Modal elements
+        const shareButton = document.getElementById('shareButton');
+        const shareModal = document.getElementById('shareModal');
+        const closeShareModalButton = document.getElementById('closeShareModalButton');
+        const qrCodeContainer = document.getElementById('qrCodeContainer');
+        const serverLinkInput = document.getElementById('serverLinkInput');
+        const copyLinkButton = document.getElementById('copyLinkButton');
 
         // --- State Variables ---
         let currentLibraryPath = []; // Array of folder names representing the current path for Library view
@@ -1631,6 +1704,61 @@
             }
         }
 
+        /**
+         * Opens the share modal and generates the QR code.
+         */
+        async function openShareModal() {
+            let serverUrl;
+            try {
+                // Fetch the server's actual IP address from the backend
+                const response = await fetch('/api/server_address');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch server address from API.');
+                }
+                const data = await response.json();
+                serverUrl = data.server_address;
+                if (!serverUrl) {
+                    throw new Error('Server address not provided by API.');
+                }
+            } catch (error) {
+                console.error('Error fetching server IP:', error);
+                showMessage('Could not get server IP from API. Using current host.', 3000);
+                serverUrl = `${window.location.protocol}//${window.location.host}`; // Fallback to current host
+            }
+            serverLinkInput.value = serverUrl;
+            qrCodeContainer.innerHTML = ''; // Clear previous QR code
+            const canvas = document.createElement('canvas');
+            qrCodeContainer.appendChild(canvas);
+
+            try {
+                await QRCode.toCanvas(canvas, serverUrl, {
+                    width: 220,
+                    margin: 1,
+                    errorCorrectionLevel: 'H'
+                });
+                shareModal.classList.remove('hidden');
+                shareModal.classList.add('active');
+            } catch (err) {
+                console.error('QR Code generation failed:', err);
+                showMessage('Could not generate QR code.', 3000);
+            }
+        }
+
+        /**
+         * Copies the server link to the clipboard.
+         */
+        function copyServerLink() {
+            serverLinkInput.select();
+            serverLinkInput.setSelectionRange(0, 99999); // For mobile devices
+
+            try {
+                navigator.clipboard.writeText(serverLinkInput.value);
+                showMessage('Link copied to clipboard!', 2000);
+            } catch (err) {
+                showMessage('Failed to copy link.', 3000);
+            }
+        }
+
         // --- Event Listeners ---
         homeButton.addEventListener('click', () => {
             currentLibraryPath = [];
@@ -1665,6 +1793,11 @@
         cancelChangePathButton.addEventListener('click', () => { changePathModal.classList.remove('active'); changePathModal.classList.add('hidden'); });
         saveNewPathButton.addEventListener('click', saveNewLibraryPath);
         newPathInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveNewLibraryPath(); });
+
+        // Share Modal Listeners
+        shareButton.addEventListener('click', openShareModal);
+        closeShareModalButton.addEventListener('click', () => { shareModal.classList.remove('active'); });
+        copyLinkButton.addEventListener('click', copyServerLink);
 
         // Song Details Modal Event Listeners
         closeModalButton.addEventListener('click', closeSongDetailsModal);
@@ -1734,6 +1867,13 @@
                 !event.target.closest('#actionButton')) {
                 changePathModal.classList.remove('active');
                 changePathModal.classList.add('hidden');
+            }
+            // Close share modal
+            if (shareModal.classList.contains('active') &&
+                !shareModal.querySelector('.bg-white').contains(event.target) &&
+                !event.target.closest('#shareButton')) {
+                shareModal.classList.remove('active');
+                shareModal.classList.add('hidden');
             }
         });
 

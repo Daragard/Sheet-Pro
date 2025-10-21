@@ -817,6 +817,55 @@ def playlist():
     """
     return send_from_directory('.', 'playlist.html')
 
+import socket
+from flask import Flask, jsonify, request
+
+# Assuming 'app' is your Flask application instance.
+# For example, if your main Flask file is app.py, it might look like:
+# app = Flask(__name__)
+# If you have a different setup, adjust 'app' accordingly.
+
+# --- New function to get the local IP address ---
+def get_local_ip():
+    """
+    Attempts to find the local IP address of the machine that is
+    accessible from other devices on the same local network.
+
+    This method works by creating a UDP socket and attempting to connect
+    to a non-routable IP address (10.255.255.255). This forces the OS
+    to determine the most appropriate local IP address for an outbound
+    connection, without actually sending any data.
+    """
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # It doesn't matter if the target host is reachable,
+        # we just need to trigger the OS to select a local interface.
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        # Fallback to localhost if no network connection or an error occurs.
+        # This might happen if the server is truly isolated (e.g., in some Docker setups)
+        # or if there's no active network interface.
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
+
+# --- New API endpoint to return the server's address ---
+@app.route('/api/server_address', methods=['GET'])
+def get_server_address():
+    """
+    Returns the server's local IP address and port.
+    """
+    local_ip = get_local_ip()
+    # Extract port from the request host, or default to 5000.
+    # request.host might be 'localhost:5000' or '192.168.1.100:5000'.
+    # We want to ensure we use the port the server is actually listening on.
+    port = request.host.split(':')[-1] if ':' in request.host else '5000'
+    server_address = f"http://{local_ip}:{port}"
+    return jsonify({"server_address": server_address})
+
+
 # This block ensures the Flask development server runs only when the script is executed directly.
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
