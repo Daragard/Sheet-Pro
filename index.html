@@ -494,7 +494,13 @@
                 }
             }
             // Ensure currentPageNum doesn't go below 1 or beyond what's available
-            currentPageNum = Math.max(1, Math.min(targetFirstVisiblePage, pdfDoc.numPages - numPagesToDisplay + 1));
+            // In landscape, we want to be able to show the last page, even if it's by itself.
+            // The check should only prevent starting on a page that doesn't exist.
+            if (numPagesToDisplay === 2) {
+                currentPageNum = Math.max(1, Math.min(targetFirstVisiblePage, pdfDoc.numPages));
+            } else { // For portrait, the old logic is fine.
+                currentPageNum = Math.max(1, Math.min(targetFirstVisiblePage, pdfDoc.numPages - numPagesToDisplay + 1));
+            }
             previousOrientationIsPortrait = currentIsPortrait;
 
             // Handle playlist and pageInfoContainer visibility based on orientation and isPlaylistActive state
@@ -771,17 +777,17 @@
                 pdfDoc.numPages: ${pdfDoc.numPages}`);
 
             const currentIsPortrait = window.innerHeight > window.innerWidth;
-            let step = 1;
-
             let currentPagesToDisplay = 1;
             if (!currentIsPortrait && pdfDoc.numPages >= 2) {
                 currentPagesToDisplay = 2;
             }
-            step = currentPagesToDisplay;
+
+            // In two-page view, we always want to turn by two pages.
+            const step = currentPagesToDisplay;
 
             // If not on the first page of the current PDF, just go back pages
             if (currentPageNum > 1) {
-                currentPageNum = Math.max(1, currentPageNum - step);
+                currentPageNum = Math.max(1, currentPageNum - step); // Go back by 2 pages in landscape
                 console.log(`[LeftNav] Going back page. New currentPageNum: ${currentPageNum}`);
                 await renderPdfPages(); // Await the rendering
             } else if (isPlaylistActive && currentSongIndexInPlaylist > 0) {
@@ -815,20 +821,19 @@
                 pdfDoc.numPages: ${pdfDoc.numPages}`);
 
             const currentIsPortrait = window.innerHeight > window.innerWidth;
-            let step = 1;
-
             let currentPagesToDisplay = 1;
             if (!currentIsPortrait && pdfDoc.numPages >= 2) {
                 currentPagesToDisplay = 2;
             }
-            step = currentPagesToDisplay;
+
+            // In two-page view, we always want to turn by two pages.
+            const step = currentPagesToDisplay;
 
             // If advancing pages within the current PDF
-            // Check if the *last page of the next set* is within bounds
-            if (currentPageNum + step - 1 < pdfDoc.numPages) { 
-                currentPageNum = currentPageNum + step;
-                // Ensure it doesn't go beyond the last possible starting page for a set of 'step' pages
-                currentPageNum = Math.min(currentPageNum, pdfDoc.numPages - (step - 1));
+            // Check if there are more pages to show
+            // The new current page number must be less than or equal to the total number of pages.
+            if (currentPageNum + step <= pdfDoc.numPages) {
+                currentPageNum += step; // Always advance by the step (1 for portrait, 2 for landscape)
                 console.log(`[RightNav] Advancing page. New currentPageNum: ${currentPageNum}`);
                 await renderPdfPages(); // Await the rendering
             } else if (isPlaylistActive && currentSongIndexInPlaylist !== -1 && currentSongIndexInPlaylist < currentViewablePlaylistSongs.length - 1) {
