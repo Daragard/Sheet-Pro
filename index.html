@@ -79,6 +79,26 @@
             opacity: 1;
         }
 
+        /* Styles for collapsed dropdowns (mobile nav and more menus) */
+        .collapsed-dropdown {
+            position: absolute;
+            background-color: #fff; /* White background */
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Ensure it's above other header elements */
+            z-index: 30; /* Increased z-index to ensure it's above the PDF viewer */
+            padding: 0.5rem 0;
+            opacity: 0;
+            width: fit-content; /* Allow dropdown to shrink to content */
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s;
+            display: none; /* Hidden by default, will be flex when active */
+        }
+        .collapsed-dropdown.active {
+            opacity: 1; visibility: visible; transform: translateY(0); display: flex; flex-direction: column;
+        }
+
+
         /* Style for when an item is being dragged to show a 'grabbing' hand cursor */
         body.dragging-active, body.dragging-active * {
             cursor: grabbing !important;
@@ -131,38 +151,52 @@
 <body class="h-screen w-screen flex flex-col bg-gray-100 text-gray-800 overflow-hidden">
 
     <!-- Header Section - Mimicking ForScore's top bar -->
-    <header class="flex items-center justify-between p-4 bg-gray-900 text-white shadow-lg z-10">
-        <!-- Left group of buttons -->
-        <div class="flex items-center space-x-4">
-            <!-- Library button restored -->
-            <button id="libraryButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                <i class="fas fa-book mr-2"></i> Library
-            </button>
-            <button id="playlistsButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                <i class="fas fa-list-alt mr-2"></i> Playlist
-            </button>
-        </div>
+    <header class="p-2 md:p-4 bg-gray-900 text-white shadow-lg z-30 h-[50px] md:h-auto">
+        <div class="flex items-center justify-between w-full h-full">
+            <!-- Left side: Navigation buttons -->
+            <div class="flex-1 flex items-center justify-start">
+                <!-- Collapsed Nav Menu (Mobile) -->
+                <div class="relative md:hidden z-20">
+                    <button id="collapsedNavButton" class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-bars text-lg pointer-events-none"></i>
+                    </button>
+                    <div id="collapsedNavDropdown" class="collapsed-dropdown top-full left-0 mt-2"></div>
+                </div>
+                <!-- Full Nav Buttons (Desktop) -->
+                <div id="navButtonContainer" class="hidden md:flex items-center space-x-4">
+                    <button id="libraryButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                        <i class="fas fa-book mr-2"></i> Library
+                    </button>
+                    <button id="playlistsButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                        <i class="fas fa-list-alt mr-2"></i> Playlist
+                    </button>
+                </div>
+            </div>
 
-        <!-- App Title in the center -->
-        <h1 class="text-2xl font-bold text-indigo-400">Sheet Pro</h1>
+            <!-- Center: App Title -->
+            <div class="flex-shrink-0">
+                <h1 class="text-xl md:text-2xl font-bold text-indigo-400">Sheet Pro</h1>
+            </div>
 
-        <!-- Right group of buttons -->
-        <div class="flex items-center space-x-4">
-            <!-- <button id="searchButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                <i class="fas fa-search mr-2"></i> Search
-            </button>
-            <button id="annotateButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                <i class="fas fa-pencil-alt mr-2"></i> Annotate
-            </button>
-            <button id="toolsButton" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                <i class="fas fa-wrench mr-2"></i> Tools
-            </button> -->
-            <button id="focusModeToggle" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                <i class="fas fa-expand mr-2"></i> Focus
-            </button>
-            <button id="fullscreenToggle" class="flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                <i class="fas fa-expand-arrows-alt mr-2"></i> Fullscreen
-            </button>
+            <!-- Right side: Action buttons -->
+            <div class="flex-1 flex items-center justify-end">
+                <!-- Collapsed More Menu (Mobile) -->
+                <div class="relative md:hidden z-20">
+                    <button id="collapsedMoreButton" class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-ellipsis-v text-lg pointer-events-none"></i>
+                    </button>
+                    <div id="collapsedMoreDropdown" class="collapsed-dropdown top-full right-0 mt-2"></div>
+                </div>
+                <!-- Full Action Buttons (Desktop) -->
+                <div id="actionButtonContainer" class="hidden md:flex items-center space-x-4">
+                    <button id="focusModeToggle" class="flex items-center px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                        <i class="fas fa-expand mr-2"></i> Focus
+                    </button>
+                    <button id="fullscreenToggle" class="flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                        <i class="fas fa-expand-arrows-alt mr-2"></i> Fullscreen
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -278,6 +312,15 @@
         const playlistsButton = document.getElementById('playlistsButton');
         const libraryAside = document.getElementById('libraryAside');
         const closeAsideButton = document.getElementById('closeAsideButton');
+
+        // Responsive Header Elements
+        const navButtonContainer = document.getElementById('navButtonContainer');
+        const actionButtonContainer = document.getElementById('actionButtonContainer');
+        const collapsedNavButton = document.getElementById('collapsedNavButton');
+        const collapsedNavDropdown = document.getElementById('collapsedNavDropdown');
+        const collapsedMoreButton = document.getElementById('collapsedMoreButton');
+        const collapsedMoreDropdown = document.getElementById('collapsedMoreDropdown');
+
         const loadingOverlay = document.getElementById('loadingOverlay');
         const pdfViewerContainer = document.getElementById('pdfViewerContainer');
         const playlistContainer = document.getElementById('playlistContainer');
@@ -504,12 +547,12 @@
             previousOrientationIsPortrait = currentIsPortrait;
 
             // Handle playlist and pageInfoContainer visibility based on orientation and isPlaylistActive state
-            if (!currentIsPortrait && isPlaylistActive && isPlaylistOpen) { // Landscape, playlist active, and user wants it open
+            if (isPlaylistActive && isPlaylistOpen) { // If playlist is active and user wants it open
                 playlistContainer.classList.remove('hidden');
                 pageInfoContainer.classList.add('hidden'); // Hide page info when playlist is shown
-            } else { // Portrait OR not in playlist mode OR user closed it
+            } else { // Not in playlist mode OR user closed it
                 playlistContainer.classList.add('hidden');
-                pageInfoContainer.classList.add('hidden'); // Always hide both if not in playlist mode or if in portrait
+                pageInfoContainer.classList.add('hidden'); // Always hide page info if playlist is not shown
             }
 
 
@@ -718,6 +761,40 @@
             }
         }
 
+        /**
+         * Sets up the responsive header by cloning buttons into dropdowns.
+         */
+        function setupResponsiveHeader() {
+            // Clear existing dropdowns
+            collapsedNavDropdown.innerHTML = '';
+            collapsedMoreDropdown.innerHTML = '';
+
+            // Clone nav buttons (left side)
+            Array.from(navButtonContainer.children).forEach(btn => {
+                // Only clone visible buttons
+                const clone = btn.cloneNode(true);
+                clone.className = 'w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 rounded-md flex items-center gap-2';
+                // Add a listener to the clone
+                clone.addEventListener('click', () => {
+                    btn.click(); // Trigger the original button's click
+                    collapsedNavDropdown.classList.remove('active'); // Close dropdown
+                });
+                collapsedNavDropdown.appendChild(clone);
+            });
+
+            // Clone action buttons (right side)
+            Array.from(actionButtonContainer.children).forEach(btn => {
+                const clone = btn.cloneNode(true);
+                clone.className = 'w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 rounded-md flex items-center gap-2';
+                // Add a listener to the clone
+                clone.addEventListener('click', () => {
+                    btn.click(); // Trigger the original button's click
+                    collapsedMoreDropdown.classList.remove('active'); // Close dropdown
+                });
+                collapsedMoreDropdown.appendChild(clone);
+            });
+        }
+
         // Add event listener to the "Library" button to open the library aside
         libraryButton.addEventListener('click', () => {
             // Redirect to library.html
@@ -734,6 +811,21 @@
 
             if (libraryAside.classList.contains('translate-x-0') && !isClickInsideAside && !isLibraryButton) {
                 toggleAside(false);
+            }
+
+            // --- Dropdown Toggles ---
+            if (event.target.closest('#collapsedNavButton')) {
+                collapsedNavDropdown.classList.toggle('active');
+            }
+            if (event.target.closest('#collapsedMoreButton')) {
+                collapsedMoreDropdown.classList.toggle('active');
+            }
+            // --- Click-away Closers ---
+            if (collapsedNavDropdown.classList.contains('active') && !collapsedNavDropdown.contains(event.target) && !event.target.closest('#collapsedNavButton')) {
+                collapsedNavDropdown.classList.remove('active');
+            }
+            if (collapsedMoreDropdown.classList.contains('active') && !collapsedMoreDropdown.contains(event.target) && !event.target.closest('#collapsedMoreButton')) {
+                collapsedMoreDropdown.classList.remove('active');
             }
         });
 
@@ -1153,6 +1245,8 @@
 
         // Automatic PDF load on app startup and render initial state of playlist
         document.addEventListener('DOMContentLoaded', async () => {
+            setupResponsiveHeader(); // Set up mobile menus
+
             const songId = new URLSearchParams(window.location.search).get('songId');
             const playlistId = new URLSearchParams(window.location.search).get('playlistId');
 
@@ -1238,6 +1332,7 @@
             // Hide the playlist button if we are not in an active playlist context.
             if (!isPlaylistActive) {
                 playlistsButton.classList.add('hidden');
+                setupResponsiveHeader(); // Re-run to update dropdowns now that a button is hidden
             }
 
             console.log("[DOMContentLoaded] App startup routine complete.");

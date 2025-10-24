@@ -104,7 +104,6 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             height: 150px;
             /* Fixed height for consistent grid */
-            width: 150px;
             /* Fixed width for consistent grid */
             flex-shrink: 0;
             /* Prevent items from shrinking */
@@ -145,7 +144,7 @@
         .options-dropdown {
             position: absolute;
             background-color: #fff;
-            border-radius: 0.5rem;
+            border-radius: 0.5rem; 
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             z-index: 10;
             min-width: 160px;
@@ -193,6 +192,25 @@
             font-weight: 600;
             background-color: #e0e7ff;
             /* Lighter indigo background for active */
+        }
+
+        /* Styles for collapsed dropdowns (mobile nav and more menus) */
+        .collapsed-dropdown {
+            position: absolute;
+            background-color: #fff; /* White background */
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 20; /* Ensure it's above other header elements */            
+            padding: 0.5rem 0;
+            opacity: 0;
+            width: fit-content; /* Allow dropdown to shrink to content */
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s;
+            display: none; /* Hidden by default, will be flex when active */
+        }
+        .collapsed-dropdown.active {
+            opacity: 1; visibility: visible; transform: translateY(0); display: flex; flex-direction: column;
         }
 
         /* Separator line style */
@@ -571,56 +589,70 @@
 <body class="h-screen w-screen flex flex-col p-4 gap-4">
 
     <!-- Main Library Content -->
-    <div id="libraryMainContent" class="flex-1 flex flex-col p-4 bg-white rounded-xl shadow-lg overflow-hidden">
+    <div id="libraryMainContent" class="flex-1 flex flex-col p-4 bg-white rounded-xl shadow-lg">
         <!-- Header for Library View -->
-        <header class="p-4 bg-gray-900 text-white shadow-lg rounded-t-lg">
-            <div class="grid grid-cols-3 items-center">
+        <header class="p-2 md:p-4 bg-gray-900 text-white shadow-lg rounded-t-lg overflow-visible h-[50px] md:h-[74px]">
+            <div class="flex md:grid md:grid-cols-3 items-center justify-between w-full relative">
                 <!-- Left side: Navigation buttons -->
-                <div id="navButtonContainer" class="flex items-center space-x-2 justify-start">
-                    <button id="homeButton"
-                        class="p-2 rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                        <i class="fas fa-home text-lg"></i>
-                    </button>
-                    <button id="backButton"
-                        class="p-2 rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                        <i class="fas fa-arrow-left text-lg"></i>
-                    </button>
-                    <button id="forwardButton"
-                        class="p-2 rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                        <i class="fas fa-arrow-right text-lg"></i>
-                    </button>
-                    <button id="upButton"
-                        class="p-2 rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                        <i class="fas fa-level-up-alt text-lg"></i>
-                    </button>
+                <div class="flex items-center justify-start md:space-x-2 w-12 md:w-auto">
+                    <!-- Collapsed Nav Menu (Mobile) -->
+                    <div id="collapsedNavContainer" class="relative md:hidden z-20">
+                        <button id="collapsedNavButton" class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-bars text-lg pointer-events-none"></i>
+                        </button>
+                        <div id="collapsedNavDropdown" class="collapsed-dropdown top-full left-0 mt-2">
+                            <!-- Nav buttons will be cloned here by JS -->
+                        </div>
+                    </div>
+                    <!-- Full Nav Buttons (Desktop) -->
+                    <div id="navButtonContainer" class="hidden md:flex items-center space-x-2">
+                        <button id="homeButton" class="rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 h-[42px] w-[42px] flex items-center justify-center">
+                            <i class="fas fa-home text-lg"></i>
+                        </button>
+                        <button id="backButton" class="rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 h-[42px] w-[42px] flex items-center justify-center">
+                            <i class="fas fa-arrow-left text-lg"></i>
+                        </button>
+                        <button id="forwardButton" class="rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-ring-opacity-50 h-[42px] w-[42px] flex items-center justify-center">
+                            <i class="fas fa-arrow-right text-lg"></i>
+                        </button>
+                        <button id="upButton" class="rounded-full hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 h-[42px] w-[42px] flex items-center justify-center">
+                            <i class="fas fa-level-up-alt text-lg"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Center: Tabs -->
-                <div class="flex justify-center">
-                    <button id="libraryTabButton" class="tab-button active justify-start">Library</button>
-                    <button id="playlistsTabButton" class="tab-button justify-end">Playlists</button>
+                <div class="flex justify-center flex-shrink-0 absolute left-1/2 -translate-x-1/2 md:static md:transform-none z-10 h-[42px]">
+                    <!-- Full Tabs (Desktop) -->
+                    <button id="libraryTabButton" class="tab-button active justify-start h-full flex items-center">Library</button>
+                    <button id="playlistsTabButton" class="tab-button justify-end h-full flex items-center">Playlists</button>
+                    <!-- Collapsed Toggle (Mobile) -->
+                    <button id="viewToggleButton" class="md:hidden px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-sm font-medium">
+                        <!-- Text set by JS -->
+                    </button>
                 </div>
 
                 <!-- Right side: Options button -->
-                <div id="optionsButtonContainer" class="flex items-center justify-end space-x-2">
-                    <button id="shareButton"
-                        class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-colors text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                        Remote Connect
-                    </button>
-                    <div class="relative">
-                        <button id="optionsButton"
-                            class="p-2 rounded-full hover:bg-gray-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                            <i class="fas fa-ellipsis-h text-lg"></i>
+                <div class="flex items-center justify-end md:space-x-2 w-12 md:w-auto">
+                    <!-- Collapsed More Menu (Mobile) -->
+                    <div id="collapsedMoreContainer" class="relative md:hidden z-20">
+                        <button id="collapsedMoreButton" class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-ellipsis-v text-lg pointer-events-none"></i>
                         </button>
-
-                        <!-- Options Dropdown Menu -->
-                        <div id="optionsDropdown" class="options-dropdown top-full right-0">
-                            <button id="alphabeticalSortButton" data-sort-order="alphabetical">Alphabetical</button>
-                            <button id="dateCreatedSortButton" data-sort-order="dateCreated">Date Created</button>
-                            <button id="dateLastPlayedSortButton" data-sort-order="dateLastPlayed">Date Last
-                                Played</button>
-                            <hr class="border-gray-200 my-1">
-                            <button id="changeLibraryFolderButton">Change Library Folder</button>
+                        <div id="collapsedMoreDropdown" class="collapsed-dropdown top-full right-0 mt-2">
+                            <!-- Action buttons will be cloned here by JS -->
+                        </div>
+                    </div>
+                    <!-- Full Action Buttons (Desktop) -->
+                    <div id="optionsButtonContainer" class="hidden md:flex items-center space-x-2">
+                        <button id="shareButton" class="px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-colors text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 h-[42px]">
+                            Remote Connect
+                        </button>
+                        <div class="relative">
+                            <button id="optionsButton" class="rounded-full hover:bg-gray-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 h-[42px] w-[42px] flex items-center justify-center">
+                                <i class="fas fa-ellipsis-h text-lg"></i>
+                            </button>
+                            <div id="optionsDropdown" class="options-dropdown top-full right-0"></div>
                         </div>
                     </div>
                 </div>
@@ -644,7 +676,7 @@
             </div>
 
             <!-- Library Grid -->
-            <div id="libraryGrid" class="grid grid-cols-6 mt-6 gap-x-4 gap-y-4 overflow-y-auto pb-12 px-4">
+            <div id="libraryGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 mt-6 gap-x-4 gap-y-4 overflow-y-auto pb-12 px-4">
                 <!-- Library items will be dynamically inserted here -->
             </div>
         </div>
@@ -843,6 +875,15 @@
         const navButtonContainer = document.getElementById('navButtonContainer');
         const optionsDropdown = document.getElementById('optionsDropdown');
         const optionsButtonContainer = document.getElementById('optionsButtonContainer');
+
+        // Responsive Header Elements
+        const collapsedNavButton = document.getElementById('collapsedNavButton');
+        const collapsedNavDropdown = document.getElementById('collapsedNavDropdown');
+        const collapsedMoreButton = document.getElementById('collapsedMoreButton');
+        const collapsedMoreDropdown = document.getElementById('collapsedMoreDropdown');
+        const collapsedNavContainer = document.getElementById('collapsedNavContainer');
+        const collapsedMoreContainer = document.getElementById('collapsedMoreContainer');
+        const viewToggleButton = document.getElementById('viewToggleButton');
 
         // Sorting buttons (inside the dropdown)
         const alphabeticalSortButton = document.getElementById('alphabeticalSortButton');
@@ -1211,26 +1252,49 @@
          * @param {string} viewName - 'library' or 'playlists'.
          */
         async function switchView(viewName) {
+            const isMobile = window.innerWidth < 768; // md breakpoint
             currentView = viewName;
+
+            // Update button visibility and text based on view and screen size
+            if (isMobile) {
+                viewToggleButton.textContent = currentView === 'library' ? 'Playlists' : 'Library';
+                libraryTabButton.classList.add('hidden');
+                playlistsTabButton.classList.add('hidden');
+                viewToggleButton.classList.remove('hidden');
+            } else {
+                libraryTabButton.classList.remove('hidden');
+                playlistsTabButton.classList.remove('hidden');
+                viewToggleButton.classList.add('hidden');
+            }
+
             if (currentView === 'library') {
                 libraryView.classList.remove('hidden');
                 playlistsView.classList.add('hidden');
                 libraryTabButton.classList.add('active');
                 playlistsTabButton.classList.remove('active');
-                navButtonContainer.classList.remove('invisible'); // Show nav buttons for library
-                optionsButtonContainer.classList.remove('invisible'); // Show options for library
+                // Show library-specific controls
+                navButtonContainer.classList.remove('invisible');
+                optionsButtonContainer.classList.remove('invisible');
+                collapsedNavContainer.classList.remove('invisible'); // Changed from hidden
+                collapsedMoreContainer.classList.remove('invisible'); // Changed from hidden
                 await renderLibraryGrid(); // Re-render library grid on switch
             } else {
                 libraryView.classList.add('hidden');
                 playlistsView.classList.remove('hidden');
                 libraryTabButton.classList.remove('active');
                 playlistsTabButton.classList.add('active');
-                navButtonContainer.classList.add('invisible'); // Hide nav buttons for playlists
-                optionsButtonContainer.classList.add('invisible'); // Hide options for playlists
+                // Hide library-specific controls
+                navButtonContainer.classList.add('invisible');
+                optionsButtonContainer.classList.add('invisible');
+                collapsedNavContainer.classList.add('invisible'); // Changed from hidden
+                collapsedMoreContainer.classList.add('invisible'); // Changed from hidden
                 await fetchPlaylistsData(); // Fetch playlists before rendering
                 renderPlaylistsList(); // Render playlists on switch
             }
+            // Always close any open dropdowns when switching views
             optionsDropdown.classList.remove('active'); // Close options dropdown if visible when switching views
+            collapsedNavDropdown.style.display = 'none';
+            collapsedMoreDropdown.style.display = 'none';
         }
 
         /**
@@ -1779,6 +1843,49 @@
             }
         }
 
+        /**
+         * Sets up the responsive header by cloning buttons into dropdowns.
+         */
+        function setupResponsiveHeader() {
+            // Clear existing dropdowns
+            collapsedNavDropdown.innerHTML = '';
+            collapsedMoreDropdown.innerHTML = '';
+            optionsDropdown.innerHTML = ''; // Also clear the main options dropdown
+
+            // --- Populate Main Options Dropdown (for desktop) ---
+            const sortButtonsHtml = `
+                <button id="alphabeticalSortButton" data-sort-order="alphabetical">Alphabetical</button>
+                <button id="dateCreatedSortButton" data-sort-order="dateCreated">Date Created</button>
+                <button id="dateLastPlayedSortButton" data-sort-order="dateLastPlayed">Date Last Played</button>
+                <hr class="border-gray-200 my-1">
+                <button id="changeLibraryFolderButton">Change Library Folder</button>
+            `;
+            optionsDropdown.innerHTML = sortButtonsHtml;
+
+            // --- Clone buttons for collapsed menus ---
+            // Clone nav buttons
+            Array.from(navButtonContainer.children).forEach(btn => {
+                const clone = btn.cloneNode(true);
+                clone.className = 'text-left px-4 py-2 text-gray-800 hover:bg-gray-100 rounded-md flex items-center gap-2';
+                collapsedNavDropdown.appendChild(clone);
+            });
+
+            // Clone share button and options dropdown content
+            const shareBtnClone = shareButton.cloneNode(true);
+            shareBtnClone.className = 'text-left px-4 py-2 text-gray-800 hover:bg-gray-100 rounded-md flex items-center gap-2';
+            collapsedMoreDropdown.appendChild(shareBtnClone);
+
+            const separator = document.createElement('hr');
+            separator.className = 'border-gray-200 my-1';
+            collapsedMoreDropdown.appendChild(separator);
+
+            optionsDropdown.querySelectorAll('button').forEach(btn => {
+                const clone = btn.cloneNode(true); // Ensure the cloned button has the correct class for styling
+                clone.className = 'text-left px-4 py-2 text-gray-800 hover:bg-gray-100 rounded-md';
+                collapsedMoreDropdown.appendChild(clone);
+            });
+        }
+
         // --- Event Listeners ---
         homeButton.addEventListener('click', () => {
             currentLibraryPath = [];
@@ -1795,18 +1902,28 @@
             optionsDropdown.classList.toggle('active');
         });
 
-        // Event listeners for sorting options inside the dropdown
-        alphabeticalSortButton.addEventListener('click', (event) => {
-            sortLibrary(event.target.dataset.sortOrder);
+        // Delegated event listener for all dropdowns
+        document.addEventListener('click', (event) => {
+            const target = event.target.closest('button');
+            if (!target) return;
+
+            // Sorting
+            if (target.dataset.sortOrder) {
+                sortLibrary(target.dataset.sortOrder);
+                closeSidePanels();
+            }
+            // Change Folder
+            if (target.id === 'changeLibraryFolderButton' || target.textContent === 'Change Library Folder') {
+                handleChangeLibraryFolder();
+                closeSidePanels();
+            }
+            // Cloned nav buttons
+            if (collapsedNavDropdown.contains(target)) {
+                const originalId = target.id || target.querySelector('i').parentElement.id;
+                document.getElementById(originalId).click(); // Trigger original button's event
+                collapsedNavDropdown.style.display = 'none'; // Close dropdown
+            }
         });
-        dateCreatedSortButton.addEventListener('click', (event) => {
-            sortLibrary(event.target.dataset.sortOrder);
-        });
-        dateLastPlayedSortButton.addEventListener('click', (event) => {
-            sortLibrary(event.target.dataset.sortOrder);
-        });
-        // New event listener for "Change Library Folder" button in options dropdown
-        changeLibraryFolderButton.addEventListener('click', handleChangeLibraryFolder);
 
         // Change Path Modal Listeners
         closeChangePathModalButton.addEventListener('click', () => { changePathModal.classList.remove('active'); changePathModal.classList.add('hidden'); });
@@ -1815,7 +1932,13 @@
         newPathInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveNewLibraryPath(); });
 
         // Share Modal Listeners
-        shareButton.addEventListener('click', openShareModal);
+        document.addEventListener('click', (event) => {
+            if (event.target.closest('#shareButton') || (event.target.closest('button') && event.target.closest('button').textContent.trim() === 'Remote Connect')) {
+                openShareModal();
+                collapsedMoreDropdown.style.display = 'none';
+            }
+        });
+
         closeShareModalButton.addEventListener('click', () => { shareModal.classList.remove('active'); });
         copyLinkButton.addEventListener('click', copyServerLink);
 
@@ -1840,6 +1963,12 @@
         // Tab switching listeners
         libraryTabButton.addEventListener('click', () => switchView('library'));
         playlistsTabButton.addEventListener('click', () => switchView('playlists'));
+        viewToggleButton.addEventListener('click', () => {
+            const nextView = currentView === 'library' ? 'playlists' : 'library';
+            switchView(nextView);
+        });
+
+
 
         // Create New Playlist button
         createNewPlaylistButton.addEventListener('click', async () => {
@@ -1872,14 +2001,34 @@
 
         // Close dropdown/context menu when clicking anywhere else on the document
         document.addEventListener('click', (event) => {
+            // --- Dropdown Toggles ---
+            if (event.target.closest('#optionsButton')) {
+                optionsDropdown.classList.toggle('active');
+            }
+            if (event.target.closest('#collapsedNavButton') && window.innerWidth < 768) { // Only toggle on mobile
+                collapsedNavDropdown.classList.toggle('active');
+            }
+            if (event.target.closest('#collapsedMoreButton') && window.innerWidth < 768) { // Only toggle on mobile
+                collapsedMoreDropdown.classList.toggle('active');
+            }
+            // --- Click-away Closers ---
             // Close options dropdown
-            if (optionsDropdown.classList.contains('active') && !optionsDropdown.contains(event.target) && event.target !== optionsButton) {
+            if (optionsDropdown.classList.contains('active') && !optionsDropdown.contains(event.target) && !event.target.closest('#optionsButton')) {
                 optionsDropdown.classList.remove('active');
+            }
+            // Close collapsed nav dropdown
+            if (collapsedNavDropdown.classList.contains('active') && !collapsedNavDropdown.contains(event.target) && !event.target.closest('#collapsedNavButton')) {
+                collapsedNavDropdown.classList.remove('active');
+            }
+            // Close collapsed more dropdown
+            if (collapsedMoreDropdown.classList.contains('active') && !collapsedMoreDropdown.contains(event.target) && !event.target.closest('#collapsedMoreButton')) {
+                collapsedMoreDropdown.classList.remove('active');
             }
             // Close modal if click outside modal content and not on the modal trigger itself
             if (songDetailsModal.classList.contains('active') && !songDetailsModal.querySelector('#songDetailsModalContent').contains(event.target) && !event.target.closest('.library-grid-item.pdf')) {
                 closeSongDetailsModal();
             }
+
             // Close change path modal
             if (changePathModal.classList.contains('active') &&
                 !changePathModal.querySelector('.bg-white').contains(event.target) &&
@@ -1910,14 +2059,20 @@
 
         // Handle window resizing to re-render grid
         window.addEventListener('resize', () => {
-            if (currentView === 'library') {
-                renderLibraryGrid();
-            }
+            // Re-run the view switch logic to handle responsive changes
+            switchView(currentView);
         });
 
         // Initial app setup
         // Load library data first, then switch view based on localStorage flag
         document.addEventListener('DOMContentLoaded', async () => {
+            // Set up responsive elements first
+            setupResponsiveHeader();
+            
+            // Explicitly hide dropdowns on initial load to prevent them from being open by default on mobile
+            collapsedNavDropdown.classList.remove('active'); // Use class for hiding
+            collapsedMoreDropdown.classList.remove('active'); // Use class for hiding
+
             await fetchLibraryData(); // Ensure libraryData is loaded first
 
             const activeTabPreference = localStorage.getItem('maestroScoreActiveTab');
